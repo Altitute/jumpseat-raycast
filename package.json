@@ -12,7 +12,8 @@
     "Applications"
   ],
   "platforms": [
-    "macOS"
+    "macOS",
+    "Windows"
   ],
   "commands": [
     {
