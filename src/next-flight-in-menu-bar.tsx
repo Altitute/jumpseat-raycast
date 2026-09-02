@@ -237,8 +237,7 @@ function MenuActions({
 }
 
 function NextFlightInMenuBarCommand() {
-  const { data, error, isLoading, revalidate } =
-    usePromise(fetchUpcomingFlights);
+  const { data, error, revalidate } = usePromise(fetchUpcomingFlights);
   const lastSuccessfulFlights = useRef<UpcomingFlight[] | undefined>(undefined);
   if (!error && data) lastSuccessfulFlights.current = data;
 
@@ -252,9 +251,6 @@ function NextFlightInMenuBarCommand() {
   });
   const now = new Date();
   const selected = selectMenuBarFlight(load.flights, now);
-  const selectedAirlineLogo = selected
-    ? trustedJumpseatAssetUrl(selected.airline.logoUrl, "airline-logo")
-    : undefined;
   const refreshInterval = menuBarRefreshInterval(selected, now);
 
   useEffect(() => {
@@ -264,13 +260,12 @@ function NextFlightInMenuBarCommand() {
     return () => clearInterval(interval);
   }, [refreshInterval, revalidate]);
 
-  const title = selected
-    ? menuBarTitle(selected, now)
-    : load.state === "error"
-      ? "Flight Unavailable"
-      : load.state === "loading"
-        ? undefined
-        : "No Flights";
+  if (!selected) return null;
+
+  const selectedAirlineLogo = trustedJumpseatAssetUrl(
+    selected.airline.logoUrl,
+    "airline-logo",
+  );
 
   return (
     <MenuBarExtra
@@ -278,11 +273,10 @@ function NextFlightInMenuBarCommand() {
         source: selectedAirlineLogo ?? "unknown-airline.svg",
         fallback: "unknown-airline.svg",
       }}
-      isLoading={isLoading && load.state === "loading"}
-      title={title}
+      title={menuBarTitle(selected, now)}
       tooltip="Next Jumpseat flight"
     >
-      {selected ? <FlightDetails flight={selected} /> : null}
+      <FlightDetails flight={selected} />
       <OtherFlights flights={load.flights} selected={selected} />
       {load.state === "stale-error" ? (
         <MenuBarExtra.Section>
@@ -290,24 +284,6 @@ function NextFlightInMenuBarCommand() {
             icon={Icon.Warning}
             title="Could Not Refresh Flights"
             subtitle={error?.message}
-          />
-        </MenuBarExtra.Section>
-      ) : null}
-      {load.state === "error" ? (
-        <MenuBarExtra.Section>
-          <MenuBarExtra.Item
-            icon={Icon.Warning}
-            title="Could Not Load Flights"
-            subtitle={error?.message}
-          />
-        </MenuBarExtra.Section>
-      ) : null}
-      {load.state === "empty" ? (
-        <MenuBarExtra.Section>
-          <MenuBarExtra.Item
-            icon={Icon.Airplane}
-            title="No Upcoming Flights"
-            subtitle="Add a flight in Jumpseat to see it here."
           />
         </MenuBarExtra.Section>
       ) : null}
