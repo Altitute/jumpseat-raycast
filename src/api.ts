@@ -9,6 +9,7 @@ import { REQUEST_TIMEOUT_MS, responseErrorMessage } from "./http";
 import {
   parseFriendUpcomingFlightsResponse,
   parseUpcomingFlightsResponse,
+  type FriendUpcomingFlightsCursor,
   type FriendUpcomingFlight,
   type UpcomingFlight,
 } from "./api-response";
@@ -102,12 +103,6 @@ export async function fetchFriendUpcomingFlights(): Promise<
   FriendUpcomingFlight[]
 > {
   const configuration = getJumpseatConfiguration();
-  const url = new URL("/api/v1/crew/flights", configuration.apiBaseUrl);
-  url.searchParams.set("scope", "upcoming");
-  url.searchParams.set("allUpcoming", "true");
-  url.searchParams.set("projection", "full");
-  url.searchParams.set("limit", "100");
-
   let accessToken: string;
   try {
     accessToken = await getJumpseatAccessToken(configuration);
@@ -119,39 +114,70 @@ export async function fetchFriendUpcomingFlights(): Promise<
     throw new JumpseatApiError(message, 401);
   }
 
-  let response = await requestFlights(url, accessToken);
-  if (response.status === 401) {
-    try {
-      accessToken = await refreshJumpseatAccessToken(configuration);
-      response = await requestFlights(url, accessToken);
-    } catch (error) {
-      const message =
-        error instanceof JumpseatAuthenticationError
-          ? error.message
-          : "Your Jumpseat session has expired. Try again to sign in.";
-      throw new JumpseatApiError(message, 401);
+  const flights: FriendUpcomingFlight[] = [];
+  const seenCursors = new Set<string>();
+  let cursor: FriendUpcomingFlightsCursor | null = null;
+
+  do {
+    const url = new URL("/api/v1/crew/flights", configuration.apiBaseUrl);
+    url.searchParams.set("scope", "upcoming");
+    url.searchParams.set("allUpcoming", "true");
+    url.searchParams.set("projection", "full");
+    url.searchParams.set("limit", "100");
+    if (cursor) {
+      url.searchParams.set("cursorDepartureTime", cursor.departureTime);
+      url.searchParams.set("cursorFlightId", cursor.flightId);
+      if (cursor.userFlightId) {
+        url.searchParams.set("cursorUserFlightId", cursor.userFlightId);
+      }
     }
-  }
 
-  if (!response.ok) {
-    if (response.status === 401) await clearJumpseatAuthorization();
-    const fallback =
-      response.status === 401
-        ? "Your Jumpseat session has expired. Try again to sign in."
-        : "Jumpseat could not load your friends' upcoming flights.";
-    throw new JumpseatApiError(
-      await responseErrorMessage(response, fallback),
-      response.status,
-    );
-  }
+    let response = await requestFlights(url, accessToken);
+    if (response.status === 401) {
+      try {
+        accessToken = await refreshJumpseatAccessToken(configuration);
+        response = await requestFlights(url, accessToken);
+      } catch (error) {
+        const message =
+          error instanceof JumpseatAuthenticationError
+            ? error.message
+            : "Your Jumpseat session has expired. Try again to sign in.";
+        throw new JumpseatApiError(message, 401);
+      }
+    }
 
-  const flights = parseFriendUpcomingFlightsResponse(await response.json());
-  if (!flights) {
-    throw new JumpseatApiError(
-      "Jumpseat returned an unexpected friends flights response.",
-      response.status,
-    );
-  }
+    if (!response.ok) {
+      if (response.status === 401) await clearJumpseatAuthorization();
+      const fallback =
+        response.status === 401
+          ? "Your Jumpseat session has expired. Try again to sign in."
+          : "Jumpseat could not load your friends' upcoming flights.";
+      throw new JumpseatApiError(
+        await responseErrorMessage(response, fallback),
+        response.status,
+      );
+    }
+
+    const page = parseFriendUpcomingFlightsResponse(await response.json());
+    if (!page) {
+      throw new JumpseatApiError(
+        "Jumpseat returned an unexpected friends flights response.",
+        response.status,
+      );
+    }
+    flights.push(...page.flights);
+    cursor = page.nextCursor;
+    if (cursor) {
+      const cursorKey = `${cursor.departureTime}:${cursor.flightId}:${cursor.userFlightId ?? ""}`;
+      if (seenCursors.has(cursorKey)) {
+        throw new JumpseatApiError(
+          "Jumpseat returned a repeated friends flights cursor.",
+          response.status,
+        );
+      }
+      seenCursors.add(cursorKey);
+    }
+  } while (cursor);
 
   return flights;
 }

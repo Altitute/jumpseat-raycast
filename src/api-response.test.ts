@@ -139,20 +139,39 @@ describe("friends' upcoming flights response parsing", () => {
         nextCursor: null,
         hasMore: false,
       }),
-    ).toEqual([
-      {
-        flight: flight.flight,
-        airline: flight.airline,
-        departureAirport: flight.departureAirport,
-        arrivalAirport: flight.arrivalAirport,
-        seatNumber: null,
-        seatCabinClass: null,
-        seatPosition: null,
-        bookingNumber: null,
-        friend: flight.user,
-        userFlightId: flight.userFlightId,
-      },
-    ]);
+    ).toEqual({
+      flights: [
+        {
+          flight: flight.flight,
+          airline: flight.airline,
+          departureAirport: flight.departureAirport,
+          arrivalAirport: flight.arrivalAirport,
+          seatNumber: null,
+          seatCabinClass: null,
+          seatPosition: null,
+          bookingNumber: null,
+          friend: flight.user,
+          userFlightId: flight.userFlightId,
+        },
+      ],
+      nextCursor: null,
+      hasMore: false,
+    });
+  });
+
+  it("preserves a valid next cursor", () => {
+    const nextCursor = {
+      departureTime: "2026-09-01T10:00:00.000Z",
+      flightId: "11111111-1111-4111-8111-111111111111",
+      userFlightId: "33333333-3333-4333-8333-333333333333",
+    };
+    expect(
+      parseFriendUpcomingFlightsResponse({
+        flights: [validFriendFlight()],
+        nextCursor,
+        hasMore: true,
+      }),
+    ).toMatchObject({ nextCursor, hasMore: true });
   });
 
   it("rejects malformed friend identity and pagination metadata", () => {
@@ -161,6 +180,7 @@ describe("friends' upcoming flights response parsing", () => {
     expect(
       parseFriendUpcomingFlightsResponse({
         flights: [missingFriend],
+        nextCursor: null,
         hasMore: false,
       }),
     ).toBeNull();
@@ -168,6 +188,15 @@ describe("friends' upcoming flights response parsing", () => {
     expect(
       parseFriendUpcomingFlightsResponse({
         flights: [validFriendFlight()],
+        nextCursor: null,
+      }),
+    ).toBeNull();
+
+    expect(
+      parseFriendUpcomingFlightsResponse({
+        flights: [validFriendFlight()],
+        nextCursor: null,
+        hasMore: true,
       }),
     ).toBeNull();
   });

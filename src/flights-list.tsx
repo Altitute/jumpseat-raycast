@@ -334,7 +334,7 @@ export function FlightsList({
           );
           const friend = flight.friend;
           const subtitle = friend
-            ? `${friendName(friend)} · ${displayFlightNumber(flight)}`
+            ? `${friendLabel(friend)} · ${displayFlightNumber(flight)}`
             : displayFlightNumber(flight);
 
           return (

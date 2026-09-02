@@ -67,6 +67,18 @@ export interface FriendUpcomingFlight extends UpcomingFlight {
   userFlightId: string;
 }
 
+export interface FriendUpcomingFlightsCursor {
+  departureTime: string;
+  flightId: string;
+  userFlightId?: string;
+}
+
+export interface FriendUpcomingFlightsPage {
+  flights: FriendUpcomingFlight[];
+  nextCursor: FriendUpcomingFlightsCursor | null;
+  hasMore: boolean;
+}
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -243,7 +255,7 @@ export function parseUpcomingFlightsResponse(
 
 export function parseFriendUpcomingFlightsResponse(
   body: unknown,
-): FriendUpcomingFlight[] | null {
+): FriendUpcomingFlightsPage | null {
   if (
     !isRecord(body) ||
     !Array.isArray(body.flights) ||
@@ -259,5 +271,29 @@ export function parseFriendUpcomingFlightsResponse(
     if (!flight) return null;
     flights.push(flight);
   }
-  return flights;
+
+  let nextCursor: FriendUpcomingFlightsCursor | null = null;
+  if (body.nextCursor !== null) {
+    if (
+      !isRecord(body.nextCursor) ||
+      !isDateString(body.nextCursor.departureTime) ||
+      !isBoundedString(body.nextCursor.flightId, 36) ||
+      !UUID_PATTERN.test(body.nextCursor.flightId) ||
+      (body.nextCursor.userFlightId !== undefined &&
+        (!isBoundedString(body.nextCursor.userFlightId, 36) ||
+          !UUID_PATTERN.test(body.nextCursor.userFlightId)))
+    ) {
+      return null;
+    }
+    nextCursor = {
+      departureTime: body.nextCursor.departureTime,
+      flightId: body.nextCursor.flightId,
+      ...(body.nextCursor.userFlightId
+        ? { userFlightId: body.nextCursor.userFlightId }
+        : {}),
+    };
+  }
+
+  if (body.hasMore !== (nextCursor !== null)) return null;
+  return { flights, nextCursor, hasMore: body.hasMore };
 }
