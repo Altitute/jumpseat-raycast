@@ -7,11 +7,17 @@ import {
 } from "./oauth";
 import { REQUEST_TIMEOUT_MS, responseErrorMessage } from "./http";
 import {
+  parseFriendUpcomingFlightsResponse,
   parseUpcomingFlightsResponse,
+  type FriendUpcomingFlight,
   type UpcomingFlight,
 } from "./api-response";
 
-export type { UpcomingFlight } from "./api-response";
+export type {
+  FriendSummary,
+  FriendUpcomingFlight,
+  UpcomingFlight,
+} from "./api-response";
 
 export class JumpseatApiError extends Error {
   constructor(
@@ -23,7 +29,7 @@ export class JumpseatApiError extends Error {
   }
 }
 
-function requestUpcomingFlights(url: URL, token: string): Promise<Response> {
+function requestFlights(url: URL, token: string): Promise<Response> {
   return fetch(url, {
     headers: {
       Accept: "application/json",
@@ -55,11 +61,11 @@ export async function fetchUpcomingFlights(): Promise<UpcomingFlight[]> {
     throw new JumpseatApiError(message, 401);
   }
 
-  let response = await requestUpcomingFlights(url, accessToken);
+  let response = await requestFlights(url, accessToken);
   if (response.status === 401) {
     try {
       accessToken = await refreshJumpseatAccessToken(configuration);
-      response = await requestUpcomingFlights(url, accessToken);
+      response = await requestFlights(url, accessToken);
     } catch (error) {
       const message =
         error instanceof JumpseatAuthenticationError
@@ -85,6 +91,64 @@ export async function fetchUpcomingFlights(): Promise<UpcomingFlight[]> {
   if (!flights) {
     throw new JumpseatApiError(
       "Jumpseat returned an unexpected flights response.",
+      response.status,
+    );
+  }
+
+  return flights;
+}
+
+export async function fetchFriendUpcomingFlights(): Promise<
+  FriendUpcomingFlight[]
+> {
+  const configuration = getJumpseatConfiguration();
+  const url = new URL("/api/v1/crew/flights", configuration.apiBaseUrl);
+  url.searchParams.set("scope", "upcoming");
+  url.searchParams.set("allUpcoming", "true");
+  url.searchParams.set("projection", "full");
+  url.searchParams.set("limit", "100");
+
+  let accessToken: string;
+  try {
+    accessToken = await getJumpseatAccessToken(configuration);
+  } catch (error) {
+    const message =
+      error instanceof JumpseatAuthenticationError
+        ? error.message
+        : "Jumpseat could not complete sign-in.";
+    throw new JumpseatApiError(message, 401);
+  }
+
+  let response = await requestFlights(url, accessToken);
+  if (response.status === 401) {
+    try {
+      accessToken = await refreshJumpseatAccessToken(configuration);
+      response = await requestFlights(url, accessToken);
+    } catch (error) {
+      const message =
+        error instanceof JumpseatAuthenticationError
+          ? error.message
+          : "Your Jumpseat session has expired. Try again to sign in.";
+      throw new JumpseatApiError(message, 401);
+    }
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) await clearJumpseatAuthorization();
+    const fallback =
+      response.status === 401
+        ? "Your Jumpseat session has expired. Try again to sign in."
+        : "Jumpseat could not load your friends' upcoming flights.";
+    throw new JumpseatApiError(
+      await responseErrorMessage(response, fallback),
+      response.status,
+    );
+  }
+
+  const flights = parseFriendUpcomingFlightsResponse(await response.json());
+  if (!flights) {
+    throw new JumpseatApiError(
+      "Jumpseat returned an unexpected friends flights response.",
       response.status,
     );
   }
