@@ -8,8 +8,8 @@ import {
   openExtensionPreferences,
   showHUD,
 } from "@raycast/api";
-import { usePromise, withAccessToken } from "@raycast/utils";
-import { useEffect, useRef } from "react";
+import { useCachedPromise, withAccessToken } from "@raycast/utils";
+import { useRef } from "react";
 import {
   fetchUpcomingFlights,
   JumpseatApiError,
@@ -32,7 +32,6 @@ import {
 } from "./format";
 import {
   isArrivedFlight,
-  menuBarRefreshInterval,
   menuBarTitle,
   operationalMenuBarStatus,
   resolveMenuBarLoadState,
@@ -237,7 +236,8 @@ function MenuActions({
 }
 
 function NextFlightInMenuBarCommand() {
-  const { data, error, revalidate } = usePromise(fetchUpcomingFlights);
+  const { data, error, isLoading, revalidate } =
+    useCachedPromise(fetchUpcomingFlights);
   const lastSuccessfulFlights = useRef<UpcomingFlight[] | undefined>(undefined);
   if (!error && data) lastSuccessfulFlights.current = data;
 
@@ -251,16 +251,12 @@ function NextFlightInMenuBarCommand() {
   });
   const now = new Date();
   const selected = selectMenuBarFlight(load.flights, now);
-  const refreshInterval = menuBarRefreshInterval(selected, now);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      void revalidate();
-    }, refreshInterval);
-    return () => clearInterval(interval);
-  }, [refreshInterval, revalidate]);
-
-  if (!selected) return null;
+  if (!selected) {
+    return isLoading ? (
+      <MenuBarExtra isLoading tooltip="Next Jumpseat flight" />
+    ) : null;
+  }
 
   const selectedAirlineLogo = trustedJumpseatAssetUrl(
     selected.airline.logoUrl,
@@ -273,6 +269,7 @@ function NextFlightInMenuBarCommand() {
         source: selectedAirlineLogo ?? "unknown-airline.svg",
         fallback: "unknown-airline.svg",
       }}
+      isLoading={isLoading}
       title={menuBarTitle(selected, now)}
       tooltip="Next Jumpseat flight"
     >

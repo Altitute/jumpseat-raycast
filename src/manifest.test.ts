@@ -21,5 +21,6 @@ describe("platform command availability", () => {
     expect(macOSOnlyCommands.map((command) => command.name)).toEqual([
       "next-flight-in-menu-bar",
     ]);
+    expect(macOSOnlyCommands[0]?.interval).toBe("1m");
   });
 });

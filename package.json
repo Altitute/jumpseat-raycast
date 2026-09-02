@@ -32,7 +32,8 @@
       "name": "next-flight-in-menu-bar",
       "title": "Next Flight in Menu Bar",
       "description": "Keep your next Jumpseat flight in the menu bar",
-      "mode": "menu-bar"
+      "mode": "menu-bar",
+      "interval": "1m"
     }
   ],
   "preferences": [
