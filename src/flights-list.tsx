@@ -4,10 +4,11 @@ import {
   Color,
   environment,
   Icon,
+  Image,
   List,
   openExtensionPreferences,
 } from "@raycast/api";
-import { trustedJumpseatAssetUrl } from "./assets";
+import { trustedJumpseatAssetUrl, trustedProfilePictureUrl } from "./assets";
 import {
   JumpseatApiError,
   type FriendSummary,
@@ -62,9 +63,12 @@ function friendName(friend: FriendSummary): string {
   return friend.fullName?.trim() || `@${friend.handle}`;
 }
 
-function friendLabel(friend: FriendSummary): string {
-  const name = friend.fullName?.trim();
-  return name ? `${name} · @${friend.handle}` : `@${friend.handle}`;
+function friendFirstName(friend: FriendSummary): string {
+  return friend.fullName?.trim().split(/\s+/)[0] || "Friend";
+}
+
+function friendDisplayName(friend: FriendSummary): string {
+  return friend.fullName?.trim() || "Friend";
 }
 
 function FlightActions({
@@ -111,6 +115,9 @@ function FlightDetail({
     flight.airline.logoUrl,
     "airline-logo",
   );
+  const friendProfilePictureUrl = trustedProfilePictureUrl(
+    flight.friend?.profilePictureUrl,
+  );
   const routeMapUrl = buildRouteMapUrl({
     apiBaseUrl: getJumpseatConfiguration().apiBaseUrl,
     departureIata: flight.departureAirport.iata,
@@ -129,8 +136,16 @@ function FlightDetail({
           {flight.friend ? (
             <List.Item.Detail.Metadata.Label
               title="Friend"
-              text={friendLabel(flight.friend)}
-              icon={Icon.Person}
+              text={friendDisplayName(flight.friend)}
+              icon={
+                friendProfilePictureUrl
+                  ? {
+                      source: friendProfilePictureUrl,
+                      fallback: Icon.Person,
+                      mask: Image.Mask.Circle,
+                    }
+                  : Icon.Person
+              }
             />
           ) : null}
           <List.Item.Detail.Metadata.Label
@@ -334,7 +349,7 @@ export function FlightsList({
           );
           const friend = flight.friend;
           const subtitle = friend
-            ? `${friendLabel(friend)} · ${displayFlightNumber(flight)}`
+            ? friendFirstName(friend)
             : displayFlightNumber(flight);
 
           return (

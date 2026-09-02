@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { trustedJumpseatAssetUrl } from "./assets";
+import { trustedJumpseatAssetUrl, trustedProfilePictureUrl } from "./assets";
 
 describe("trusted Jumpseat asset URLs", () => {
   it("accepts versioned airline logos and country flags from the Jumpseat CDN", () => {
@@ -50,6 +50,22 @@ describe("trusted Jumpseat asset URLs", () => {
         "https://cdn.withjumpseat.com/country-flags/IE.svg",
         "airline-logo",
       ),
+    ).toBeUndefined();
+  });
+
+  it("accepts secure profile pictures and rejects unsafe image URLs", () => {
+    expect(
+      trustedProfilePictureUrl(
+        "https://api.withjumpseat.com/api/v1/media/profile-pictures/profile-pictures/friend/avatar-thumb.webp",
+      ),
+    ).toBe(
+      "https://api.withjumpseat.com/api/v1/media/profile-pictures/profile-pictures/friend/avatar-thumb.webp",
+    );
+    expect(
+      trustedProfilePictureUrl("http://example.com/avatar.png"),
+    ).toBeUndefined();
+    expect(
+      trustedProfilePictureUrl("https://user:secret@example.com/avatar.png"),
     ).toBeUndefined();
   });
 });

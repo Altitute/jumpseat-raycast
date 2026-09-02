@@ -60,6 +60,7 @@ export interface FriendSummary {
   id: string;
   fullName: string | null;
   handle: string;
+  profilePictureUrl: string | null;
 }
 
 export interface FriendUpcomingFlight extends UpcomingFlight {
@@ -205,7 +206,8 @@ function isFriendSummary(value: unknown): value is FriendSummary {
     isBoundedString(value.id, 36) &&
     UUID_PATTERN.test(value.id) &&
     isNullableString(value.fullName, 256) &&
-    isBoundedString(value.handle, 64)
+    isBoundedString(value.handle, 64) &&
+    isNullableString(value.profilePictureUrl, 2_048)
   );
 }
 

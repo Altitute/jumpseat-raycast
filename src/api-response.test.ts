@@ -185,6 +185,16 @@ describe("friends' upcoming flights response parsing", () => {
       }),
     ).toBeNull();
 
+    const malformedProfilePicture = validFriendFlight();
+    Reflect.set(malformedProfilePicture.user, "profilePictureUrl", 42);
+    expect(
+      parseFriendUpcomingFlightsResponse({
+        flights: [malformedProfilePicture],
+        nextCursor: null,
+        hasMore: false,
+      }),
+    ).toBeNull();
+
     expect(
       parseFriendUpcomingFlightsResponse({
         flights: [validFriendFlight()],
