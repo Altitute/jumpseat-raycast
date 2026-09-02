@@ -7,12 +7,7 @@
 
 /* eslint-disable @typescript-eslint/ban-types */
 
-type ExtensionPreferences = {
-  /** Jumpseat API URL - The Jumpseat API used by the extension. */
-  "apiBaseUrl": string,
-  /** Jumpseat Web URL - The Jumpseat website used for secure browser sign-in. */
-  "webBaseUrl": string
-}
+type ExtensionPreferences = {}
 
 /** Preferences accessible in all the extension's commands */
 declare type Preferences = ExtensionPreferences

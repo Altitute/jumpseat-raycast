@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import manifest from "../package.json";
 
 describe("platform command availability", () => {
+  it("does not expose editable backend origins", () => {
+    expect("preferences" in manifest).toBe(false);
+  });
+
   it("supports both macOS and Windows", () => {
     expect(manifest.platforms).toEqual(["macOS", "Windows"]);
   });
