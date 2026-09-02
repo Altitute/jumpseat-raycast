@@ -151,7 +151,11 @@ function FlightDetail({
           <List.Item.Detail.Metadata.Label
             title="Flight Number"
             text={displayFlightNumber(flight)}
-            icon={airlineLogoUrl ? { source: airlineLogoUrl } : Icon.Airplane}
+            icon={
+              airlineLogoUrl
+                ? { source: airlineLogoUrl, fallback: Icon.Airplane }
+                : Icon.Airplane
+            }
           />
           <List.Item.Detail.Metadata.Label
             title="Route"
@@ -364,7 +368,11 @@ export function FlightsList({
                   ? `${friend.id}:${flight.userFlightId ?? flight.flight.id}`
                   : flight.flight.id
               }
-              icon={airlineLogoUrl ? { source: airlineLogoUrl } : Icon.Airplane}
+              icon={
+                airlineLogoUrl
+                  ? { source: airlineLogoUrl, fallback: Icon.Airplane }
+                  : Icon.Airplane
+              }
               title={`${departureCode} → ${arrivalCode}`}
               subtitle={subtitle}
               keywords={[

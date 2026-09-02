@@ -67,5 +67,18 @@ describe("trusted Jumpseat asset URLs", () => {
     expect(
       trustedProfilePictureUrl("https://user:secret@example.com/avatar.png"),
     ).toBeUndefined();
+    expect(
+      trustedProfilePictureUrl("https://example.com/avatar.png"),
+    ).toBeUndefined();
+    expect(
+      trustedProfilePictureUrl(
+        "https://api.withjumpseat.com:8443/api/v1/media/profile-pictures/profile-pictures/friend/avatar-thumb.webp",
+      ),
+    ).toBeUndefined();
+    expect(
+      trustedProfilePictureUrl(
+        "https://api.withjumpseat.com/api/v1/media/posts/post/image.webp",
+      ),
+    ).toBeUndefined();
   });
 });

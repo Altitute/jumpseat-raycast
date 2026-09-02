@@ -1,4 +1,7 @@
 const JUMPSEAT_ASSET_HOST = "cdn.withjumpseat.com";
+const JUMPSEAT_API_HOST = "api.withjumpseat.com";
+const PROFILE_PICTURE_PATH_PREFIX =
+  "/api/v1/media/profile-pictures/profile-pictures/";
 
 export type JumpseatAssetKind = "airline-logo" | "country-flag";
 
@@ -45,7 +48,16 @@ export function trustedProfilePictureUrl(value: unknown): string | undefined {
 
   try {
     const url = new URL(value);
-    if (url.protocol !== "https:" || url.username || url.password || url.hash) {
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== JUMPSEAT_API_HOST ||
+      url.port ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      !url.pathname.startsWith(PROFILE_PICTURE_PATH_PREFIX)
+    ) {
       return undefined;
     }
 
