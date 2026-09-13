@@ -186,11 +186,22 @@ async function clearStoredAuthorization(
   configuration: JumpseatConfiguration,
   { revoke = false }: { revoke?: boolean } = {},
 ): Promise<void> {
-  const [tokens, storedConfigurationId, storedProtocol] = await Promise.all([
-    revoke ? jumpseatOAuthClient.getTokens() : Promise.resolve(undefined),
-    LocalStorage.getItem<string>(AUTH_CONFIGURATION_KEY),
-    LocalStorage.getItem<string>(AUTH_PROTOCOL_KEY),
-  ]);
+  const [tokensResult, storedConfigurationIdResult, storedProtocolResult] =
+    await Promise.allSettled([
+      revoke ? jumpseatOAuthClient.getTokens() : Promise.resolve(undefined),
+      LocalStorage.getItem<string>(AUTH_CONFIGURATION_KEY),
+      LocalStorage.getItem<string>(AUTH_PROTOCOL_KEY),
+    ]);
+  const tokens =
+    tokensResult.status === "fulfilled" ? tokensResult.value : undefined;
+  const storedConfigurationId =
+    storedConfigurationIdResult.status === "fulfilled"
+      ? storedConfigurationIdResult.value
+      : undefined;
+  const storedProtocol =
+    storedProtocolResult.status === "fulfilled"
+      ? storedProtocolResult.value
+      : undefined;
   const protocol = resolveStoredAuthProtocol(
     storedConfigurationId,
     storedProtocol,
@@ -203,7 +214,9 @@ async function clearStoredAuthorization(
         : revokeCentralRefreshToken(configuration, tokens.refreshToken)
       : Promise.resolve();
 
-  await Promise.allSettled([
+  // Revocation is best-effort, but local deletion is the disconnect contract.
+  // Start every deletion and propagate a local storage failure to the caller.
+  await Promise.all([
     revocation,
     jumpseatOAuthClient.removeTokens(),
     LocalStorage.removeItem(AUTH_CONFIGURATION_KEY),
