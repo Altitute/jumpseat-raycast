@@ -165,5 +165,17 @@ describe("Jumpseat OAuth protocol", () => {
       contentType: "application/x-www-form-urlencoded",
       body: "grant_type=refresh_token&refresh_token=refresh&client_id=jumpseat-raycast&resource=https%3A%2F%2Fapi.withjumpseat.com",
     });
+    expect(
+      buildRefreshRequest(
+        {
+          ...configuration,
+          authBaseUrl: "https://auth-previous.withjumpseat.com",
+        },
+        "refresh",
+        "central",
+      ),
+    ).toMatchObject({
+      url: new URL("https://auth-previous.withjumpseat.com/oauth/token"),
+    });
   });
 });

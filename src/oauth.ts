@@ -4,6 +4,7 @@ import { getJumpseatConfiguration } from "./config";
 import {
   jumpseatConfigurationId,
   legacyJumpseatConfigurationId,
+  resolveStoredCentralOAuthIssuer,
   type JumpseatConfiguration,
 } from "./config-values";
 import { REQUEST_TIMEOUT_MS, responseErrorMessage } from "./http";
@@ -28,6 +29,7 @@ import {
 const INSTALL_ID_KEY = "jumpseat-client-install-id";
 const AUTH_CONFIGURATION_KEY = "jumpseat-auth-configuration";
 const AUTH_PROTOCOL_KEY = "jumpseat-auth-protocol";
+const AUTH_ISSUER_KEY = "jumpseat-auth-issuer";
 const AUTH_DISCOVERY_TIMEOUT_MS = 5_000;
 
 export const jumpseatOAuthClient = new OAuth.PKCEClient({
@@ -87,9 +89,14 @@ async function exchangeAuthorizationCode(
   return tokens;
 }
 
+interface FreshAuthorizationProtocol {
+  protocol: JumpseatAuthProtocol;
+  issuer?: string;
+}
+
 async function discoverFreshAuthorizationProtocol(
   configuration: JumpseatConfiguration,
-): Promise<JumpseatAuthProtocol> {
+): Promise<FreshAuthorizationProtocol> {
   try {
     const response = await fetch(
       oauthEndpoint(
@@ -101,23 +108,25 @@ async function discoverFreshAuthorizationProtocol(
         signal: AbortSignal.timeout(AUTH_DISCOVERY_TIMEOUT_MS),
       },
     );
-    if (!response.ok) return "legacy";
+    if (!response.ok) return { protocol: "legacy" };
     const document = await response.json().catch(() => null);
     return isCentralOAuthAuthorizationServer(
       document,
       configuration.authBaseUrl,
     )
-      ? "central"
-      : "legacy";
+      ? { protocol: "central", issuer: configuration.authBaseUrl }
+      : { protocol: "legacy" };
   } catch {
-    return "legacy";
+    return { protocol: "legacy" };
   }
 }
 
 async function authorize(
   configuration: JumpseatConfiguration,
 ): Promise<string> {
-  const protocol = await discoverFreshAuthorizationProtocol(configuration);
+  const authorizationProtocol =
+    await discoverFreshAuthorizationProtocol(configuration);
+  const { protocol } = authorizationProtocol;
   const request = await jumpseatOAuthClient.authorizationRequest(
     buildAuthorizationRequestPlan(configuration, protocol),
   );
@@ -136,15 +145,20 @@ async function authorize(
       : jumpseatConfigurationId(configuration),
   );
   await LocalStorage.setItem(AUTH_PROTOCOL_KEY, protocol);
+  if (authorizationProtocol.issuer) {
+    await LocalStorage.setItem(AUTH_ISSUER_KEY, authorizationProtocol.issuer);
+  } else {
+    await LocalStorage.removeItem(AUTH_ISSUER_KEY);
+  }
   return tokens.access_token;
 }
 
 async function revokeCentralRefreshToken(
-  configuration: JumpseatConfiguration,
+  issuer: string,
   refreshToken: string,
 ): Promise<void> {
   try {
-    await fetch(oauthEndpoint(configuration.authBaseUrl, "/oauth/revoke"), {
+    await fetch(oauthEndpoint(issuer, "/oauth/revoke"), {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -186,12 +200,17 @@ async function clearStoredAuthorization(
   configuration: JumpseatConfiguration,
   { revoke = false }: { revoke?: boolean } = {},
 ): Promise<void> {
-  const [tokensResult, storedConfigurationIdResult, storedProtocolResult] =
-    await Promise.allSettled([
-      revoke ? jumpseatOAuthClient.getTokens() : Promise.resolve(undefined),
-      LocalStorage.getItem<string>(AUTH_CONFIGURATION_KEY),
-      LocalStorage.getItem<string>(AUTH_PROTOCOL_KEY),
-    ]);
+  const [
+    tokensResult,
+    storedConfigurationIdResult,
+    storedProtocolResult,
+    storedIssuerResult,
+  ] = await Promise.allSettled([
+    revoke ? jumpseatOAuthClient.getTokens() : Promise.resolve(undefined),
+    LocalStorage.getItem<string>(AUTH_CONFIGURATION_KEY),
+    LocalStorage.getItem<string>(AUTH_PROTOCOL_KEY),
+    LocalStorage.getItem<string>(AUTH_ISSUER_KEY),
+  ]);
   const tokens =
     tokensResult.status === "fulfilled" ? tokensResult.value : undefined;
   const storedConfigurationId =
@@ -202,16 +221,26 @@ async function clearStoredAuthorization(
     storedProtocolResult.status === "fulfilled"
       ? storedProtocolResult.value
       : undefined;
+  const storedIssuer =
+    storedIssuerResult.status === "fulfilled"
+      ? storedIssuerResult.value
+      : undefined;
   const protocol = resolveStoredAuthProtocol(
     storedConfigurationId,
     storedProtocol,
     configuration,
   );
+  const issuer =
+    protocol === "central"
+      ? resolveStoredCentralOAuthIssuer(storedIssuer, configuration)
+      : undefined;
   const revocation =
     tokens?.refreshToken && protocol
       ? protocol === "legacy"
         ? revokeLegacyRefreshToken(configuration, tokens.refreshToken)
-        : revokeCentralRefreshToken(configuration, tokens.refreshToken)
+        : issuer
+          ? revokeCentralRefreshToken(issuer, tokens.refreshToken)
+          : Promise.resolve()
       : Promise.resolve();
 
   // Revocation is best-effort, but local deletion is the disconnect contract.
@@ -221,12 +250,14 @@ async function clearStoredAuthorization(
     jumpseatOAuthClient.removeTokens(),
     LocalStorage.removeItem(AUTH_CONFIGURATION_KEY),
     LocalStorage.removeItem(AUTH_PROTOCOL_KEY),
+    LocalStorage.removeItem(AUTH_ISSUER_KEY),
   ]);
 }
 
 interface StoredJumpseatAuthorization {
   tokens: OAuth.TokenSet;
   protocol: JumpseatAuthProtocol;
+  issuer?: string;
 }
 
 async function getStoredAuthorization(
@@ -235,10 +266,12 @@ async function getStoredAuthorization(
   const tokens = await jumpseatOAuthClient.getTokens();
   if (!tokens) return undefined;
 
-  const [storedConfigurationId, storedProtocol] = await Promise.all([
-    LocalStorage.getItem<string>(AUTH_CONFIGURATION_KEY),
-    LocalStorage.getItem<string>(AUTH_PROTOCOL_KEY),
-  ]);
+  const [storedConfigurationId, storedProtocol, storedIssuer] =
+    await Promise.all([
+      LocalStorage.getItem<string>(AUTH_CONFIGURATION_KEY),
+      LocalStorage.getItem<string>(AUTH_PROTOCOL_KEY),
+      LocalStorage.getItem<string>(AUTH_ISSUER_KEY),
+    ]);
   const protocol = resolveStoredAuthProtocol(
     storedConfigurationId,
     storedProtocol,
@@ -251,7 +284,20 @@ async function getStoredAuthorization(
   if (storedProtocol !== protocol) {
     await LocalStorage.setItem(AUTH_PROTOCOL_KEY, protocol);
   }
-  return { tokens, protocol };
+  if (protocol === "legacy") {
+    if (storedIssuer) await LocalStorage.removeItem(AUTH_ISSUER_KEY);
+    return { tokens, protocol };
+  }
+
+  const issuer = resolveStoredCentralOAuthIssuer(storedIssuer, configuration);
+  if (!issuer) {
+    await clearStoredAuthorization(configuration);
+    return undefined;
+  }
+  if (storedIssuer !== issuer) {
+    await LocalStorage.setItem(AUTH_ISSUER_KEY, issuer);
+  }
+  return { tokens, protocol, issuer };
 }
 
 async function getClientInstallId(): Promise<string> {
@@ -275,6 +321,7 @@ async function refreshStoredAccessToken(
   configuration: JumpseatConfiguration,
   tokens: OAuth.TokenSet | undefined,
   protocol: JumpseatAuthProtocol,
+  issuer?: string,
 ): Promise<string> {
   if (!tokens?.refreshToken) {
     await clearStoredAuthorization(configuration);
@@ -284,8 +331,12 @@ async function refreshStoredAccessToken(
   }
 
   const clientInstallId = await getClientInstallId();
+  const requestConfiguration =
+    protocol === "central" && issuer
+      ? { ...configuration, authBaseUrl: issuer }
+      : configuration;
   const refreshRequest = buildRefreshRequest(
-    configuration,
+    requestConfiguration,
     tokens.refreshToken,
     protocol,
   );
@@ -355,6 +406,7 @@ export async function refreshJumpseatAccessToken(
     configuration,
     authorization?.tokens,
     authorization?.protocol ?? "central",
+    authorization?.issuer,
   );
 }
 
@@ -368,6 +420,7 @@ export async function getJumpseatAccessToken(
       configuration,
       authorization.tokens,
       authorization.protocol,
+      authorization.issuer,
     );
   }
   return authorization.tokens.accessToken;
