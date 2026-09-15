@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { LocalStorage, OAuth } from "@raycast/api";
 import { getJumpseatConfiguration } from "./config";
+import { clearFlightCache, migrateFlightCache } from "./flight-cache";
 import {
   jumpseatConfigurationId,
   legacyJumpseatConfigurationId,
@@ -247,10 +248,12 @@ async function clearStoredAuthorization(
   // Start every deletion and propagate a local storage failure to the caller.
   await Promise.all([
     revocation,
+    Promise.resolve().then(clearFlightCache),
     jumpseatOAuthClient.removeTokens(),
     LocalStorage.removeItem(AUTH_CONFIGURATION_KEY),
     LocalStorage.removeItem(AUTH_PROTOCOL_KEY),
     LocalStorage.removeItem(AUTH_ISSUER_KEY),
+    LocalStorage.removeItem(INSTALL_ID_KEY),
   ]);
 }
 
@@ -263,8 +266,12 @@ interface StoredJumpseatAuthorization {
 async function getStoredAuthorization(
   configuration: JumpseatConfiguration,
 ): Promise<StoredJumpseatAuthorization | undefined> {
+  await migrateFlightCache();
   const tokens = await jumpseatOAuthClient.getTokens();
-  if (!tokens) return undefined;
+  if (!tokens) {
+    clearFlightCache();
+    return undefined;
+  }
 
   const [storedConfigurationId, storedProtocol, storedIssuer] =
     await Promise.all([
@@ -364,19 +371,17 @@ async function refreshStoredAccessToken(
     );
   }
   if (!response.ok) {
-    const errorBody = await response
-      .clone()
-      .json()
-      .catch(() => null);
-    const terminal = isDefinitiveOAuthTokenFailure(response.status, errorBody);
+    const errorBody = await response.json().catch(() => null);
+    const terminal = isDefinitiveOAuthTokenFailure(
+      response.status,
+      errorBody,
+      protocol,
+    );
     if (terminal) await clearStoredAuthorization(configuration);
     throw new JumpseatAuthenticationError(
-      await responseErrorMessage(
-        response,
-        terminal
-          ? "Your Jumpseat session has expired. Try again to sign in."
-          : "Jumpseat could not refresh your session. Please try again shortly.",
-      ),
+      terminal
+        ? "Your Jumpseat session has expired. Try again to sign in."
+        : "Jumpseat could not refresh your session. Please try again shortly.",
     );
   }
 

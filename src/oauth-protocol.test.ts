@@ -116,18 +116,42 @@ describe("Jumpseat OAuth protocol", () => {
     );
   });
 
-  it("only treats 401 and OAuth invalid_grant as terminal", () => {
-    expect(isDefinitiveOAuthTokenFailure(401, null)).toBe(true);
-    expect(isDefinitiveOAuthTokenFailure(400, { error: "invalid_grant" })).toBe(
-      true,
-    );
-    expect(isDefinitiveOAuthTokenFailure(400, { code: "invalid_grant" })).toBe(
-      true,
-    );
-    expect(isDefinitiveOAuthTokenFailure(429, { error: "rate_limited" })).toBe(
-      false,
-    );
-    expect(isDefinitiveOAuthTokenFailure(500, null)).toBe(false);
+  it("requires a definitive refresh rejection for each protocol", () => {
+    expect(isDefinitiveOAuthTokenFailure(401, null, "legacy")).toBe(true);
+    expect(isDefinitiveOAuthTokenFailure(401, null, "central")).toBe(false);
+    expect(
+      isDefinitiveOAuthTokenFailure(
+        401,
+        { error: "invalid_client" },
+        "central",
+      ),
+    ).toBe(false);
+    for (const protocol of ["legacy", "central"] as const) {
+      expect(
+        isDefinitiveOAuthTokenFailure(
+          400,
+          { error: "invalid_grant" },
+          protocol,
+        ),
+      ).toBe(true);
+      expect(
+        isDefinitiveOAuthTokenFailure(400, { code: "invalid_grant" }, protocol),
+      ).toBe(true);
+      expect(
+        isDefinitiveOAuthTokenFailure(
+          429,
+          { error: "invalid_grant" },
+          protocol,
+        ),
+      ).toBe(false);
+      expect(
+        isDefinitiveOAuthTokenFailure(
+          500,
+          { error: "invalid_grant" },
+          protocol,
+        ),
+      ).toBe(false);
+    }
   });
 
   it("keeps released credentials on the legacy authority until reauthorized", () => {

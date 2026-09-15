@@ -125,9 +125,13 @@ export function buildRefreshRequest(
 export function isDefinitiveOAuthTokenFailure(
   status: number,
   body: unknown,
+  protocol: JumpseatAuthProtocol,
 ): boolean {
-  if (status === 401) return true;
-  if (!body || typeof body !== "object") return false;
+  // The legacy API rejects expired/revoked refresh tokens with HTTP 401.
+  // The central OAuth server may also use 401 for client authentication errors.
+  if (status === 401 && protocol === "legacy") return true;
+  if ((status !== 400 && status !== 401) || !body || typeof body !== "object")
+    return false;
   const error = body as { error?: unknown; code?: unknown };
   return error.error === "invalid_grant" || error.code === "invalid_grant";
 }
