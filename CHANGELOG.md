@@ -1,6 +1,10 @@
 # Changelog
 
-## [Initial Version] - {PR_MERGE_DATE}
+## [Dark Airline Logos] - {PR_MERGE_DATE}
+
+- Use dark airline logos in dark appearance, in both the flight lists and the menu bar.
+
+## [Initial Version] - 2026-09-25
 
 - Add an upcoming-flights list and detail view.
 - Add a friends' upcoming-flights view with friend, route, timing, status, airport, and aircraft details.
