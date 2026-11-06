@@ -62,7 +62,9 @@ function FlightDetails({ flight }: { flight: MenuBarFlight }) {
     <>
       <MenuBarExtra.Section>
         <MenuBarExtra.Item
-          icon={logo ? { source: logo } : Icon.Airplane}
+          icon={
+            logo ? { source: logo, fallback: Icon.Airplane } : Icon.Airplane
+          }
           title={`${displayFlightNumber(flight)} · ${route(flight)}`}
         />
         <MenuBarExtra.Item title="Status" subtitle={status} />
@@ -158,7 +160,9 @@ function OtherFlights({
         return (
           <MenuBarExtra.Item
             key={flight.flight.id}
-            icon={logo ? { source: logo } : Icon.Airplane}
+            icon={
+              logo ? { source: logo, fallback: Icon.Airplane } : Icon.Airplane
+            }
             title={`${displayFlightNumber(flight)} · ${route(flight)}`}
             subtitle={
               isArrivedFlight(flight)
