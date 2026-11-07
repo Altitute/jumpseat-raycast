@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   aircraftName,
+  displayFlightNumber,
   effectiveArrival,
   effectiveDeparture,
   formatCompactCountdown,
@@ -83,6 +84,26 @@ describe("departure countdown formatting", () => {
 
     expect(formatCountdown(justDeparted, now)).toBe("Departing now");
     expect(formatCompactCountdown(justDeparted, now)).toBe("Now");
+  });
+});
+
+describe("flight number display", () => {
+  function numbered(iata: string | null, flightNumber: string) {
+    return { airline: { iata }, flight: { flightNumber } };
+  }
+
+  it.each([
+    ["LH", "459", "LH 459"],
+    ["LH", "LH459", "LH 459"],
+    ["LH", "lh 459", "LH 459"],
+    ["lh", "LH459A", "LH 459A"],
+    ["LO", "LH459", "LH 459"],
+    [null, "LH459", "LH 459"],
+    [null, "459", "459"],
+    ["LH", "N123AB", "N123AB"],
+    ["LH", "  ", ""],
+  ])("shows %s with %j as %j", (iata, flightNumber, expected) => {
+    expect(displayFlightNumber(numbered(iata, flightNumber))).toBe(expected);
   });
 });
 

@@ -15,6 +15,7 @@ function flight(
   overrides: {
     arrivalCity?: string | null;
     arrivalIata?: string | null;
+    flightNumber?: string;
     estimatedDepartureTime?: string | null;
     actualGateDepartureTime?: string | null;
     actualTakeoffTime?: string | null;
@@ -29,7 +30,7 @@ function flight(
   return {
     flight: {
       id,
-      flightNumber: "123",
+      flightNumber: overrides.flightNumber ?? "123",
       departureTime,
       arrivalTime: new Date(
         Date.parse(departureTime) + 2 * 60 * 60_000,
@@ -174,6 +175,35 @@ describe("menu-bar title formatting", () => {
 
     expect(menuBarTitle(boarding, now)).toBe("Boarding");
     expect(menuBarTitle(delayed, now)).toBe("Delayed 25m");
+  });
+});
+
+describe("copied flight summary", () => {
+  it.each(["123", "EI123", "ei 123"])(
+    "names flight number %j once under the airline code",
+    (flightNumber) => {
+      const source = flight(
+        "11111111-1111-4111-8111-111111111111",
+        "2026-08-29T16:00:00Z",
+        { flightNumber },
+      );
+
+      expect(flightSummary(projectMenuBarFlight(source)).split("\n")[0]).toBe(
+        "EI 123 · DUB → JFK",
+      );
+    },
+  );
+
+  it("keeps a codeshare number under its own airline", () => {
+    const source = flight(
+      "11111111-1111-4111-8111-111111111111",
+      "2026-08-29T16:00:00Z",
+      { flightNumber: "BA5951" },
+    );
+
+    expect(flightSummary(projectMenuBarFlight(source)).split("\n")[0]).toBe(
+      "BA 5951 · DUB → JFK",
+    );
   });
 });
 
