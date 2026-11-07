@@ -1,4 +1,8 @@
 import type { UpcomingFlight } from "./api";
+import {
+  formatFlightDesignator,
+  parseFlightDesignator,
+} from "./flight-designator";
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -95,15 +99,33 @@ export function airportCode(
   return airport?.iata ?? airport?.icao ?? "TBD";
 }
 
-export function displayFlightNumber(flight: {
+interface FlightNumberFields {
   flight: Pick<UpcomingFlight["flight"], "flightNumber">;
-  airline: Pick<UpcomingFlight["airline"], "iata">;
-}): string {
-  const number = flight.flight.flightNumber.trim();
-  const airlineCode = flight.airline.iata?.trim().toUpperCase();
-  const compactNumber = number.replace(/\s+/g, "").toUpperCase();
-  if (!airlineCode || compactNumber.startsWith(airlineCode)) return number;
-  return `${airlineCode} ${number}`;
+  airline: Pick<UpcomingFlight["airline"], "iata" | "icao">;
+}
+
+function flightDesignator(flight: FlightNumberFields) {
+  return parseFlightDesignator({
+    airlineCode: flight.airline.iata,
+    alternateAirlineCode: flight.airline.icao,
+    flightNumber: flight.flight.flightNumber,
+  });
+}
+
+export function displayFlightNumber(flight: FlightNumberFields): string {
+  return formatFlightDesignator(flightDesignator(flight), "spaced");
+}
+
+export function flightNumberKeywords(flight: FlightNumberFields): string[] {
+  const designator = flightDesignator(flight);
+  if (!designator) return [];
+  return [
+    ...new Set([
+      formatFlightDesignator(designator, "spaced"),
+      formatFlightDesignator(designator, "compact"),
+      designator.flightNumber,
+    ]),
+  ];
 }
 
 export function formatEnumLabel(value: string | null): string {

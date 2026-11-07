@@ -45,7 +45,7 @@ export interface MenuBarFlight {
   >;
   airline: Pick<
     UpcomingFlight["airline"],
-    "iata" | "name" | "logoUrl" | "logoDarkUrl"
+    "iata" | "icao" | "name" | "logoUrl" | "logoDarkUrl"
   >;
   departureAirport: MenuBarAirport;
   arrivalAirport: MenuBarArrivalAirport | null;
@@ -111,6 +111,7 @@ export function projectMenuBarFlight(source: UpcomingFlight): MenuBarFlight {
     },
     airline: {
       iata: source.airline.iata,
+      icao: source.airline.icao,
       name: source.airline.name,
       logoUrl: source.airline.logoUrl,
       logoDarkUrl: source.airline.logoDarkUrl,
