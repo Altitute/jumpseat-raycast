@@ -7,6 +7,21 @@ import {
 } from "./assets";
 
 describe("trusted Jumpseat asset URLs", () => {
+  it("accepts airline brand logo folders", () => {
+    const brand = {
+      logoUrl: "https://cdn.withjumpseat.com/airline-logos/TW1/light.svg?v=7",
+      logoDarkUrl: "https://cdn.withjumpseat.com/airline-logos/TW1/dark.svg",
+    };
+    expect(trustedAirlineLogoSource(brand)).toEqual({
+      light: brand.logoUrl,
+      dark: brand.logoDarkUrl,
+    });
+    expect(trustedAirlineMenuBarLogoSource(brand)).toEqual({
+      light: "https://cdn.withjumpseat.com/airline-logos/TW1/light.png?v=7",
+      dark: "https://cdn.withjumpseat.com/airline-logos/TW1/dark.png",
+    });
+  });
+
   it("accepts versioned airline logos and country flags from the Jumpseat CDN", () => {
     expect(
       trustedJumpseatAssetUrl(

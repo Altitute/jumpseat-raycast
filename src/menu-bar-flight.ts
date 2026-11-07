@@ -1,3 +1,4 @@
+import { flightAirline } from "./airline-brand";
 import type { UpcomingFlight } from "./api";
 import {
   airportCode,
@@ -63,7 +64,9 @@ function menuBarArrivalAirport(
 
 // Explicitly allowlist every cached field, including nested objects. Neither
 // booking details nor future API response fields may reach the disk cache.
+// The airline is cached with the brand the flight flies under already applied.
 export function projectMenuBarFlight(source: UpcomingFlight): MenuBarFlight {
+  const airline = flightAirline(source);
   return {
     flight: {
       id: source.flight.id,
@@ -92,9 +95,9 @@ export function projectMenuBarFlight(source: UpcomingFlight): MenuBarFlight {
       onTimeStatus: source.flight.onTimeStatus,
     },
     airline: {
-      iata: source.airline.iata,
-      logoUrl: source.airline.logoUrl,
-      logoDarkUrl: source.airline.logoDarkUrl,
+      iata: airline.iata,
+      logoUrl: airline.logoUrl,
+      logoDarkUrl: airline.logoDarkUrl,
     },
     departureAirport: menuBarAirport(source.departureAirport),
     arrivalAirport: source.arrivalAirport

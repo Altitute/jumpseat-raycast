@@ -15,6 +15,15 @@ export interface AirlineSummary {
   logoDarkUrl?: string | null;
 }
 
+// The airline brand in effect at the flight's scheduled departure: "current",
+// "past" or "scheduled". Only past and scheduled brands carry a name and logo.
+export interface AirlineBrandSummary {
+  kind: string;
+  name: string | null;
+  logoUrl: string | null;
+  logoDarkUrl: string | null;
+}
+
 export interface FlightSummary {
   id: string;
   flightNumber: string;
@@ -44,6 +53,7 @@ export interface FlightSummary {
   boardState: string | null;
   flightPhase: string | null;
   onTimeStatus: string | null;
+  airlineBrand?: AirlineBrandSummary;
 }
 
 export interface UpcomingFlight {
@@ -153,6 +163,16 @@ function isAirlineSummary(value: unknown): value is AirlineSummary {
   );
 }
 
+function isAirlineBrandSummary(value: unknown): value is AirlineBrandSummary {
+  if (!isRecord(value)) return false;
+  return (
+    isBoundedString(value.kind, 32) &&
+    isNullableString(value.name, 256) &&
+    isNullableString(value.logoUrl, 2_048) &&
+    isNullableString(value.logoDarkUrl, 2_048)
+  );
+}
+
 function isFlightSummary(value: unknown): value is FlightSummary {
   if (!isRecord(value)) return false;
   return (
@@ -184,7 +204,9 @@ function isFlightSummary(value: unknown): value is FlightSummary {
     isNullableString(value.flightState, 64) &&
     isNullableString(value.boardState, 64) &&
     isNullableString(value.flightPhase, 64) &&
-    isNullableString(value.onTimeStatus, 64)
+    isNullableString(value.onTimeStatus, 64) &&
+    (value.airlineBrand === undefined ||
+      isAirlineBrandSummary(value.airlineBrand))
   );
 }
 

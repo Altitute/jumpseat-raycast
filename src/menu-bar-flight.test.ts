@@ -258,4 +258,25 @@ describe("menu-bar cache projection", () => {
     source.arrivalAirport = null;
     expect(projectMenuBarFlight(source).arrivalAirport).toBeNull();
   });
+
+  it("caches the logo of the brand the flight flies under", () => {
+    const source = flight("brand", "2026-09-20T01:00:00Z");
+    source.airline = {
+      iata: "TW",
+      name: "T'way Air",
+      logoUrl: "https://cdn.withjumpseat.com/airline-logos/TWB/light.svg",
+      logoDarkUrl: "https://cdn.withjumpseat.com/airline-logos/TWB/dark.svg",
+    };
+    source.flight.airlineBrand = {
+      kind: "scheduled",
+      name: "Trinity Airways",
+      logoUrl: "https://cdn.withjumpseat.com/airline-logos/TW1/light.svg",
+      logoDarkUrl: null,
+    };
+    expect(projectMenuBarFlight(source).airline).toEqual({
+      iata: "TW",
+      logoUrl: "https://cdn.withjumpseat.com/airline-logos/TW1/light.svg",
+      logoDarkUrl: null,
+    });
+  });
 });
