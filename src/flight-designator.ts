@@ -16,7 +16,7 @@ export interface FlightDesignator {
 
 export type FlightDesignatorStyle = "compact" | "spaced";
 
-const WHITESPACE = /[\s\u0085]/gu;
+const WHITESPACE = /\p{White_Space}/gu;
 const CODE = /^[A-Z0-9]{2,3}$/;
 const LETTER = /[A-Z]/;
 const CORE = /^[0-9]+[A-Z]?$/;
