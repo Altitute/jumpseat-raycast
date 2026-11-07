@@ -155,6 +155,22 @@ describe("upcoming flights response parsing", () => {
     expect(parseUpcomingFlightsResponse({ flights: [flight] })).toBeNull();
   });
 
+  it("rejects a malformed airline id on the flight or its brand", () => {
+    const flight = validFlight();
+    Reflect.set(flight.flight, "airlineId", "TW");
+    expect(parseUpcomingFlightsResponse({ flights: [flight] })).toBeNull();
+
+    const brand = validFlight();
+    Reflect.set(brand.flight, "airlineBrand", {
+      airlineId: 42,
+      kind: "past",
+      name: null,
+      logoUrl: null,
+      logoDarkUrl: null,
+    });
+    expect(parseUpcomingFlightsResponse({ flights: [brand] })).toBeNull();
+  });
+
   it("rejects oversized result sets and invalid time zones", () => {
     expect(
       parseUpcomingFlightsResponse({

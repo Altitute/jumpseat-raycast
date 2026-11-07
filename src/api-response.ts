@@ -18,6 +18,7 @@ export interface AirlineSummary {
 // The airline brand in effect at the flight's scheduled departure: "current",
 // "past" or "scheduled". Only past and scheduled brands carry a name and logo.
 export interface AirlineBrandSummary {
+  airlineId?: string;
   kind: string;
   name: string | null;
   logoUrl: string | null;
@@ -26,6 +27,7 @@ export interface AirlineBrandSummary {
 
 export interface FlightSummary {
   id: string;
+  airlineId?: string;
   flightNumber: string;
   departureTime: string;
   arrivalTime: string | null;
@@ -163,9 +165,17 @@ function isAirlineSummary(value: unknown): value is AirlineSummary {
   );
 }
 
+function isOptionalUuid(value: unknown): boolean {
+  return (
+    value === undefined ||
+    (isBoundedString(value, 36) && UUID_PATTERN.test(value))
+  );
+}
+
 function isAirlineBrandSummary(value: unknown): value is AirlineBrandSummary {
   if (!isRecord(value)) return false;
   return (
+    isOptionalUuid(value.airlineId) &&
     isBoundedString(value.kind, 32) &&
     isNullableString(value.name, 256) &&
     isNullableString(value.logoUrl, 2_048) &&
@@ -178,6 +188,7 @@ function isFlightSummary(value: unknown): value is FlightSummary {
   return (
     isBoundedString(value.id, 36) &&
     UUID_PATTERN.test(value.id) &&
+    isOptionalUuid(value.airlineId) &&
     isBoundedString(value.flightNumber, 32) &&
     isDateString(value.departureTime) &&
     isNullableDateString(value.arrivalTime) &&

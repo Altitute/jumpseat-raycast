@@ -15,12 +15,23 @@ const airline = {
   logoDarkUrl: "https://cdn.withjumpseat.com/airline-logos/TWB/dark.svg",
 };
 
+const TWAY_ID = "44444444-4444-4444-8444-444444444444";
+const JEJU_ID = "66666666-6666-4666-8666-666666666666";
+
+const jeju = {
+  iata: "7C",
+  name: "Jeju Air",
+  logoUrl: "https://cdn.withjumpseat.com/airline-logos/JJA/light.svg",
+  logoDarkUrl: null,
+};
+
 function flight(
   airlineBrand?: AirlineBrandSummary,
 ): Pick<UpcomingFlight, "flight" | "airline"> {
   return {
     flight: {
       id: "11111111-1111-4111-8111-111111111111",
+      airlineId: TWAY_ID,
       flightNumber: "201",
       departureTime: "2026-09-20T01:00:00.000Z",
       arrivalTime: "2026-09-20T03:00:00.000Z",
@@ -44,6 +55,7 @@ function flight(
 }
 
 const scheduled: AirlineBrandSummary = {
+  airlineId: TWAY_ID,
   kind: "scheduled",
   name: "Trinity Airways",
   logoUrl: "https://cdn.withjumpseat.com/airline-logos/TW1/light.svg",
@@ -111,6 +123,7 @@ describe("flight airline brand", () => {
 
 describe("airline brand retention", () => {
   const current: AirlineBrandSummary = {
+    airlineId: TWAY_ID,
     kind: "current",
     name: null,
     logoUrl: null,
@@ -146,5 +159,27 @@ describe("airline brand retention", () => {
     const [retained] = retainAirlineBrands([flight(scheduled)], [other]);
     expect(retained).toBe(other);
     expect(retainAirlineBrands(undefined, [other])[0]).toBe(other);
+  });
+
+  it("drops the brand when the flight moves to another airline", () => {
+    const moved = flight();
+    moved.flight = { ...moved.flight, airlineId: JEJU_ID };
+    moved.airline = jeju;
+    const [retained] = retainAirlineBrands([flight(scheduled)], [moved]);
+    expect(retained).toBe(moved);
+    expect(flightAirline(retained)).toBe(jeju);
+  });
+
+  it("does not retain a brand without a known airline", () => {
+    const unowned = { ...scheduled, airlineId: undefined };
+    expect(
+      retainAirlineBrands([flight(unowned)], [flight()])[0].flight.airlineBrand,
+    ).toBeUndefined();
+    const unknownAirline = flight();
+    unknownAirline.flight = { ...unknownAirline.flight, airlineId: undefined };
+    expect(
+      retainAirlineBrands([flight(scheduled)], [unknownAirline])[0].flight
+        .airlineBrand,
+    ).toBeUndefined();
   });
 });

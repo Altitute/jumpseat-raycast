@@ -10,7 +10,7 @@ interface BrandedFlight {
 }
 
 interface FlightBrand {
-  flight: Pick<FlightSummary, "id" | "airlineBrand">;
+  flight: Pick<FlightSummary, "id" | "airlineId" | "airlineBrand">;
 }
 
 // A past or scheduled brand replaces the airline's name and logo. A brand
@@ -40,8 +40,9 @@ export function flightAirlineKeywords(flight: BrandedFlight): string[] {
 }
 
 // The server omits airlineBrand while its brand cache is not loaded. Keep the
-// brand last seen for the same flight until a response states it again; an
-// explicit brand, including "current", replaces it.
+// brand last seen for the same flight and the same marketing airline until a
+// response states it again; an explicit brand, including "current", replaces
+// it. A brand from before the flight moved to another airline is dropped.
 export function retainAirlineBrands<T extends FlightBrand>(
   previous: readonly FlightBrand[] | undefined,
   next: T[],
@@ -56,7 +57,8 @@ export function retainAirlineBrands<T extends FlightBrand>(
   return next.map((flight) => {
     if (flight.flight.airlineBrand !== undefined) return flight;
     const airlineBrand = known.get(flight.flight.id);
-    return airlineBrand
+    return airlineBrand?.airlineId &&
+      airlineBrand.airlineId === flight.flight.airlineId
       ? { ...flight, flight: { ...flight.flight, airlineBrand } }
       : flight;
   });

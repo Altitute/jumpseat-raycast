@@ -269,6 +269,7 @@ describe("menu-bar cache projection", () => {
       logoDarkUrl: "https://cdn.withjumpseat.com/airline-logos/TWB/dark.svg",
     };
     source.flight.airlineBrand = {
+      airlineId: "44444444-4444-4444-8444-444444444444",
       kind: "scheduled",
       name: "Trinity Airways",
       logoUrl: "https://cdn.withjumpseat.com/airline-logos/TW1/light.svg",
@@ -276,7 +277,8 @@ describe("menu-bar cache projection", () => {
     };
     Reflect.set(source.flight.airlineBrand, "brandId", "PRIVATE-FIELD");
     const projected = projectMenuBarFlight(source);
-    expect(projected.flight.airlineBrand).toEqual({
+    expect(projected.flight.airlineBrand).toStrictEqual({
+      airlineId: "44444444-4444-4444-8444-444444444444",
       kind: "scheduled",
       name: "Trinity Airways",
       logoUrl: "https://cdn.withjumpseat.com/airline-logos/TW1/light.svg",

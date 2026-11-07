@@ -70,6 +70,7 @@ function menuBarAirlineBrand(
 ): MenuBarFlight["flight"]["airlineBrand"] {
   if (!brand) return undefined;
   return {
+    airlineId: brand.airlineId,
     kind: brand.kind,
     name: brand.name,
     logoUrl: brand.logoUrl,
