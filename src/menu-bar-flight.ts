@@ -1,4 +1,3 @@
-import { flightAirline } from "./airline-brand";
 import type { UpcomingFlight } from "./api";
 import {
   airportCode,
@@ -42,8 +41,12 @@ export interface MenuBarFlight {
     | "boardState"
     | "flightPhase"
     | "onTimeStatus"
+    | "airlineBrand"
   >;
-  airline: Pick<UpcomingFlight["airline"], "iata" | "logoUrl" | "logoDarkUrl">;
+  airline: Pick<
+    UpcomingFlight["airline"],
+    "iata" | "name" | "logoUrl" | "logoDarkUrl"
+  >;
   departureAirport: MenuBarAirport;
   arrivalAirport: MenuBarArrivalAirport | null;
 }
@@ -62,11 +65,21 @@ function menuBarArrivalAirport(
   return { ...menuBarAirport(airport), city: airport.city };
 }
 
+function menuBarAirlineBrand(
+  brand: UpcomingFlight["flight"]["airlineBrand"],
+): MenuBarFlight["flight"]["airlineBrand"] {
+  if (!brand) return undefined;
+  return {
+    kind: brand.kind,
+    name: brand.name,
+    logoUrl: brand.logoUrl,
+    logoDarkUrl: brand.logoDarkUrl,
+  };
+}
+
 // Explicitly allowlist every cached field, including nested objects. Neither
 // booking details nor future API response fields may reach the disk cache.
-// The airline is cached with the brand the flight flies under already applied.
 export function projectMenuBarFlight(source: UpcomingFlight): MenuBarFlight {
-  const airline = flightAirline(source);
   return {
     flight: {
       id: source.flight.id,
@@ -93,11 +106,13 @@ export function projectMenuBarFlight(source: UpcomingFlight): MenuBarFlight {
       boardState: source.flight.boardState,
       flightPhase: source.flight.flightPhase,
       onTimeStatus: source.flight.onTimeStatus,
+      airlineBrand: menuBarAirlineBrand(source.flight.airlineBrand),
     },
     airline: {
-      iata: airline.iata,
-      logoUrl: airline.logoUrl,
-      logoDarkUrl: airline.logoDarkUrl,
+      iata: source.airline.iata,
+      name: source.airline.name,
+      logoUrl: source.airline.logoUrl,
+      logoDarkUrl: source.airline.logoDarkUrl,
     },
     departureAirport: menuBarAirport(source.departureAirport),
     arrivalAirport: source.arrivalAirport

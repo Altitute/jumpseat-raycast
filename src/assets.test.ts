@@ -22,6 +22,49 @@ describe("trusted Jumpseat asset URLs", () => {
     });
   });
 
+  it("accepts PNG airline brand logos and keeps them in the menu bar", () => {
+    const brand = {
+      logoUrl: "https://cdn.withjumpseat.com/airline-logos/TW1/light.png",
+      logoDarkUrl:
+        "https://cdn.withjumpseat.com/airline-logos/TW1/dark.png?v=2",
+    };
+    expect(trustedAirlineLogoSource(brand)).toEqual({
+      light: brand.logoUrl,
+      dark: brand.logoDarkUrl,
+    });
+    expect(trustedAirlineMenuBarLogoSource(brand)).toEqual({
+      light: brand.logoUrl,
+      dark: brand.logoDarkUrl,
+    });
+    expect(
+      trustedAirlineMenuBarLogoSource({
+        logoUrl: "https://cdn.withjumpseat.com/airline-logos/TW1/light.png",
+        logoDarkUrl: "https://cdn.withjumpseat.com/airline-logos/TW1/dark.svg",
+      }),
+    ).toEqual({
+      light: "https://cdn.withjumpseat.com/airline-logos/TW1/light.png",
+      dark: "https://cdn.withjumpseat.com/airline-logos/TW1/dark.png",
+    });
+  });
+
+  it("rejects airline logos in other formats or from untrusted hosts", () => {
+    for (const value of [
+      "https://cdn.withjumpseat.com/airline-logos/TW1/light.jpg",
+      "https://cdn.withjumpseat.com/airline-logos/TW1/light.png.svg.exe",
+      "https://cdn.withjumpseat.com/airline-logos/TW1/logo.png",
+      "https://example.com/airline-logos/TW1/light.png",
+      "http://cdn.withjumpseat.com/airline-logos/TW1/light.png",
+    ]) {
+      expect(trustedJumpseatAssetUrl(value, "airline-logo")).toBeUndefined();
+    }
+    expect(
+      trustedJumpseatAssetUrl(
+        "https://cdn.withjumpseat.com/country-flags/IE.png",
+        "country-flag",
+      ),
+    ).toBeUndefined();
+  });
+
   it("accepts versioned airline logos and country flags from the Jumpseat CDN", () => {
     expect(
       trustedJumpseatAssetUrl(

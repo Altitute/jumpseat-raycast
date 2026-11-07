@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { flightAirline, flightAirlineKeywords } from "./airline-brand";
+import {
+  flightAirline,
+  flightAirlineKeywords,
+  flightAirlineName,
+  retainAirlineBrands,
+} from "./airline-brand";
 import type { AirlineBrandSummary, UpcomingFlight } from "./api-response";
 import { trustedAirlineLogoSource } from "./assets";
 
@@ -91,5 +96,55 @@ describe("flight airline brand", () => {
       "T'way Air",
     ]);
     expect(flightAirlineKeywords(flight())).toEqual(["T'way Air"]);
+  });
+
+  it("names the airline or the brand the flight flies under", () => {
+    expect(flightAirlineName(flight())).toBe("T'way Air");
+    expect(flightAirlineName(flight(scheduled))).toBe("Trinity Airways");
+    expect(
+      flightAirlineName(
+        flight({ ...scheduled, logoUrl: null, logoDarkUrl: null }),
+      ),
+    ).toBe("Trinity Airways");
+  });
+});
+
+describe("airline brand retention", () => {
+  const current: AirlineBrandSummary = {
+    kind: "current",
+    name: null,
+    logoUrl: null,
+    logoDarkUrl: null,
+  };
+
+  it("keeps the last known brand while a refresh omits it", () => {
+    const branded = [flight(scheduled)];
+    const retained = retainAirlineBrands(branded, [flight()]);
+    expect(retained[0].flight.airlineBrand).toBe(scheduled);
+    expect(flightAirline(retained[0]).logoUrl).toBe(scheduled.logoUrl);
+  });
+
+  it("lets an explicit brand, including the current one, replace it", () => {
+    const branded = [flight(scheduled)];
+    const cleared = retainAirlineBrands(branded, [flight(current)]);
+    expect(flightAirline(cleared[0])).toBe(airline);
+    const past = { ...scheduled, kind: "past", name: "Air Trinity" };
+    expect(
+      retainAirlineBrands(branded, [flight(past)])[0].flight.airlineBrand,
+    ).toBe(past);
+    expect(flightAirline(retainAirlineBrands(cleared, [flight()])[0])).toBe(
+      airline,
+    );
+  });
+
+  it("only applies a brand to the same flight", () => {
+    const other = flight();
+    other.flight = {
+      ...other.flight,
+      id: "22222222-2222-4222-8222-222222222222",
+    };
+    const [retained] = retainAirlineBrands([flight(scheduled)], [other]);
+    expect(retained).toBe(other);
+    expect(retainAirlineBrands(undefined, [other])[0]).toBe(other);
   });
 });

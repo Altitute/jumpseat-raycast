@@ -4,7 +4,7 @@
 
 - Use dark airline logos in dark appearance, in both the flight lists and the menu bar.
 - Show an airplane icon in the menu bar flight items when an airline logo fails to load.
-- Show the airline brand a flight flies under, such as a new name and logo after an announced rebrand, and find flights by either name.
+- Show the airline brand a flight flies under, such as a new name and logo after an announced rebrand, name it in the flight details and the menu bar, and find flights by either name.
 
 ## [Initial Version] - 2026-09-25
 

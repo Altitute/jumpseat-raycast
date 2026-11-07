@@ -10,6 +10,7 @@ import {
 } from "@raycast/api";
 import { useCachedPromise, withAccessToken } from "@raycast/utils";
 import { useRef } from "react";
+import { flightAirline, flightAirlineName } from "./airline-brand";
 import { JumpseatApiError } from "./api";
 import { trustedAirlineMenuBarLogoSource } from "./assets";
 import {
@@ -56,7 +57,8 @@ function FlightDetails({ flight }: { flight: MenuBarFlight }) {
   const arrival = effectiveArrival(flight);
   const status =
     operationalMenuBarStatus(flight) ?? formatFlightStatus(flight.flight);
-  const logo = trustedAirlineMenuBarLogoSource(flight.airline);
+  const logo = trustedAirlineMenuBarLogoSource(flightAirline(flight));
+  const airlineName = flightAirlineName(flight);
 
   return (
     <>
@@ -118,6 +120,9 @@ function FlightDetails({ flight }: { flight: MenuBarFlight }) {
         />
       </MenuBarExtra.Section>
       <MenuBarExtra.Section title="Flight">
+        {airlineName ? (
+          <MenuBarExtra.Item title="Airline" subtitle={airlineName} />
+        ) : null}
         <MenuBarExtra.Item title="Aircraft" subtitle={aircraftName(flight)} />
       </MenuBarExtra.Section>
     </>
@@ -156,7 +161,7 @@ function OtherFlights({
   return (
     <MenuBarExtra.Section title="Other Flights">
       {visible.map((flight) => {
-        const logo = trustedAirlineMenuBarLogoSource(flight.airline);
+        const logo = trustedAirlineMenuBarLogoSource(flightAirline(flight));
         return (
           <MenuBarExtra.Item
             key={flight.flight.id}
@@ -231,9 +236,10 @@ function MenuActions({
 }
 
 function NextFlightInMenuBarCommand() {
-  const { data, error, isLoading, revalidate } =
-    useCachedPromise(fetchMenuBarFlights);
   const lastSuccessfulFlights = useRef<MenuBarFlight[] | undefined>(undefined);
+  const { data, error, isLoading, revalidate } = useCachedPromise(() =>
+    fetchMenuBarFlights(lastSuccessfulFlights.current),
+  );
   if (!error && data) lastSuccessfulFlights.current = data;
 
   const load = resolveMenuBarLoadState({
@@ -253,7 +259,9 @@ function NextFlightInMenuBarCommand() {
     ) : null;
   }
 
-  const selectedAirlineLogo = trustedAirlineMenuBarLogoSource(selected.airline);
+  const selectedAirlineLogo = trustedAirlineMenuBarLogoSource(
+    flightAirline(selected),
+  );
 
   return (
     <MenuBarExtra
