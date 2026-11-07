@@ -10,6 +10,7 @@ export interface AirportSummary {
 
 export interface AirlineSummary {
   iata: string | null;
+  icao?: string | null;
   name: string;
   logoUrl?: string | null;
   logoDarkUrl?: string | null;
@@ -159,6 +160,7 @@ function isAirlineSummary(value: unknown): value is AirlineSummary {
   if (!isRecord(value)) return false;
   return (
     isNullableString(value.iata, 8) &&
+    isOptionalNullableString(value.icao, 8) &&
     isBoundedString(value.name, 256) &&
     isOptionalNullableString(value.logoUrl, 2_048) &&
     isOptionalNullableString(value.logoDarkUrl, 2_048)

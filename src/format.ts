@@ -101,12 +101,13 @@ export function airportCode(
 
 interface FlightNumberFields {
   flight: Pick<UpcomingFlight["flight"], "flightNumber">;
-  airline: Pick<UpcomingFlight["airline"], "iata">;
+  airline: Pick<UpcomingFlight["airline"], "iata" | "icao">;
 }
 
 function flightDesignator(flight: FlightNumberFields) {
   return parseFlightDesignator({
     airlineCode: flight.airline.iata,
+    alternateAirlineCode: flight.airline.icao,
     flightNumber: flight.flight.flightNumber,
   });
 }

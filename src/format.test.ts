@@ -89,8 +89,12 @@ describe("departure countdown formatting", () => {
 });
 
 describe("flight number display", () => {
-  function numbered(iata: string | null, flightNumber: string) {
-    return { airline: { iata }, flight: { flightNumber } };
+  function numbered(
+    iata: string | null,
+    flightNumber: string,
+    icao?: string | null,
+  ) {
+    return { airline: { iata, icao }, flight: { flightNumber } };
   }
 
   it.each([
@@ -105,6 +109,17 @@ describe("flight number display", () => {
     ["LH", "  ", ""],
   ])("shows %s with %j as %j", (iata, flightNumber, expected) => {
     expect(displayFlightNumber(numbered(iata, flightNumber))).toBe(expected);
+  });
+
+  it.each([
+    ["LH", "DLH", "DLH459", "LH 459"],
+    [null, "DLH", "459", "DLH 459"],
+    [null, "DLH", "DLH459", "DLH 459"],
+    ["BA", "BAW", "BAW117", "BA 117"],
+  ])("shows %s/%s with %j as %j", (iata, icao, flightNumber, expected) => {
+    expect(displayFlightNumber(numbered(iata, flightNumber, icao))).toBe(
+      expected,
+    );
   });
 
   it("finds a flight by its spaced and compact designators and bare number", () => {
