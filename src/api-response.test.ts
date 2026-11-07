@@ -3,6 +3,7 @@ import {
   parseFriendUpcomingFlightsResponse,
   parseUpcomingFlightsResponse,
 } from "./api-response";
+import { displayFlightNumber } from "./format";
 
 function validFlight() {
   return {
@@ -115,6 +116,41 @@ describe("upcoming flights response parsing", () => {
     ).toBeNull();
   });
 
+  it("keeps the airline ICAO code and accepts responses without one", () => {
+    const flight = validFlight();
+    expect(
+      parseUpcomingFlightsResponse({ flights: [flight] })?.[0],
+    ).not.toHaveProperty("airline.icao");
+
+    const withIcao = validFlight();
+    Reflect.set(withIcao.airline, "icao", "SIA");
+    expect(
+      parseUpcomingFlightsResponse({ flights: [withIcao] })?.[0]?.airline.icao,
+    ).toBe("SIA");
+
+    const withoutIcao = validFlight();
+    Reflect.set(withoutIcao.airline, "icao", null);
+    expect(
+      parseUpcomingFlightsResponse({ flights: [withoutIcao] })?.[0]?.airline
+        .icao,
+    ).toBeNull();
+
+    for (const icao of [459, "OVERLONGCODE"]) {
+      const malformed = validFlight();
+      Reflect.set(malformed.airline, "icao", icao);
+      expect(parseUpcomingFlightsResponse({ flights: [malformed] })).toBeNull();
+    }
+  });
+
+  it("shows an ICAO-prefixed number under the airline's IATA code", () => {
+    const flight = validFlight();
+    flight.flight.flightNumber = "DLH459";
+    Object.assign(flight.airline, { iata: "LH", icao: "DLH" });
+
+    const [parsed] = parseUpcomingFlightsResponse({ flights: [flight] }) ?? [];
+    expect(parsed && displayFlightNumber(parsed)).toBe("LH 459");
+  });
+
   it("accepts the airline brand a flight flies under", () => {
     const flight = {
       ...validFlight(),
@@ -213,6 +249,22 @@ describe("friends' upcoming flights response parsing", () => {
       nextCursor: null,
       hasMore: false,
     });
+  });
+
+  it("shows a bare number under the ICAO code of an airline without IATA", () => {
+    const flight = validFriendFlight();
+    flight.flight.flightNumber = "459";
+    Object.assign(flight.airline, { iata: null, icao: "DLH" });
+
+    const parsed = parseFriendUpcomingFlightsResponse({
+      flights: [flight],
+      nextCursor: null,
+      hasMore: false,
+    });
+    expect(parsed?.flights[0]?.airline.icao).toBe("DLH");
+    expect(parsed?.flights[0] && displayFlightNumber(parsed.flights[0])).toBe(
+      "DLH 459",
+    );
   });
 
   it("preserves a valid next cursor", () => {
