@@ -6,6 +6,7 @@
 - Show an airplane icon in the menu bar flight items when an airline logo fails to load.
 - Show the airline brand a flight flies under, such as a new name and logo after an announced rebrand, name it in the flight details and the menu bar, and find flights by either name.
 - Show each flight number once under its airline code, such as LH 459, even when it is stored with the code attached, and keep a codeshare number under its own airline.
+- Find flights by flight number, with or without the airline code: LH 459, LH459 or 459.
 
 ## [Initial Version] - 2026-09-25
 

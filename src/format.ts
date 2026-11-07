@@ -115,6 +115,18 @@ export function displayFlightNumber(flight: FlightNumberFields): string {
   return formatFlightDesignator(flightDesignator(flight), "spaced");
 }
 
+export function flightNumberKeywords(flight: FlightNumberFields): string[] {
+  const designator = flightDesignator(flight);
+  if (!designator) return [];
+  return [
+    ...new Set([
+      formatFlightDesignator(designator, "spaced"),
+      formatFlightDesignator(designator, "compact"),
+      designator.flightNumber,
+    ]),
+  ];
+}
+
 export function formatEnumLabel(value: string | null): string {
   if (!value) return "Not added";
   return value

@@ -4,6 +4,7 @@ import {
   displayFlightNumber,
   effectiveArrival,
   effectiveDeparture,
+  flightNumberKeywords,
   formatCompactCountdown,
   formatCountdown,
   formatFlightStatus,
@@ -104,6 +105,21 @@ describe("flight number display", () => {
     ["LH", "  ", ""],
   ])("shows %s with %j as %j", (iata, flightNumber, expected) => {
     expect(displayFlightNumber(numbered(iata, flightNumber))).toBe(expected);
+  });
+
+  it("finds a flight by its spaced and compact designators and bare number", () => {
+    for (const flightNumber of ["459", "LH459", "lh 459"]) {
+      expect(flightNumberKeywords(numbered("LH", flightNumber))).toEqual([
+        "LH 459",
+        "LH459",
+        "459",
+      ]);
+    }
+  });
+
+  it("finds a flight without an airline code by its number alone", () => {
+    expect(flightNumberKeywords(numbered(null, "459"))).toEqual(["459"]);
+    expect(flightNumberKeywords(numbered("LH", " "))).toEqual([]);
   });
 });
 

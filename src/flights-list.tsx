@@ -33,6 +33,7 @@ import {
   effectiveArrival,
   effectiveDeparture,
   escapeMarkdown,
+  flightNumberKeywords,
   formatCompactCountdown,
   formatCountdown,
   formatDate,
@@ -379,6 +380,7 @@ export function FlightsList({
               title={`${departureCode} → ${arrivalCode}`}
               subtitle={subtitle}
               keywords={[
+                ...flightNumberKeywords(flight),
                 departureCode,
                 arrivalCode,
                 flight.departureAirport.name,
