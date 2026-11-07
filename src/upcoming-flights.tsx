@@ -1,18 +1,23 @@
 import { usePromise, withAccessToken } from "@raycast/utils";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { retainAirlineBrands } from "./airline-brand";
 import { fetchUpcomingFlights } from "./api";
-import { FlightsList } from "./flights-list";
+import { type FlightListEntry, FlightsList } from "./flights-list";
 import { getJumpseatAccessToken, jumpseatOAuthClient } from "./oauth";
 
 const ACTIVE_REFRESH_INTERVAL_MS = 60_000;
 
 function UpcomingFlightsCommand() {
+  const previousFlights = useRef<FlightListEntry[] | undefined>(undefined);
   const {
     data: flights = [],
     error,
     isLoading,
     revalidate,
-  } = usePromise(fetchUpcomingFlights);
+  } = usePromise(async () =>
+    retainAirlineBrands(previousFlights.current, await fetchUpcomingFlights()),
+  );
+  if (!error && flights.length > 0) previousFlights.current = flights;
 
   useEffect(() => {
     const interval = setInterval(() => {

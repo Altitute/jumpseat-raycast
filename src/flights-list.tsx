@@ -9,6 +9,11 @@ import {
   open,
   openExtensionPreferences,
 } from "@raycast/api";
+import {
+  flightAirline,
+  flightAirlineKeywords,
+  flightAirlineName,
+} from "./airline-brand";
 import { trustedAirlineLogoSource, trustedProfilePictureUrl } from "./assets";
 import {
   JumpseatApiError,
@@ -108,7 +113,8 @@ function FlightDetail({
   const departureCode = airportCode(flight.departureAirport);
   const arrivalCode = airportCode(flight.arrivalAirport);
   const status = formatFlightStatus(flight.flight);
-  const airlineLogo = trustedAirlineLogoSource(flight.airline);
+  const airlineLogo = trustedAirlineLogoSource(flightAirline(flight));
+  const airlineName = flightAirlineName(flight);
   const friendProfilePictureUrl = trustedProfilePictureUrl(
     flight.friend?.profilePictureUrl,
   );
@@ -151,6 +157,12 @@ function FlightDetail({
                 : Icon.Airplane
             }
           />
+          {airlineName ? (
+            <List.Item.Detail.Metadata.Label
+              title="Airline"
+              text={airlineName}
+            />
+          ) : null}
           <List.Item.Detail.Metadata.Label
             title="Route"
             text={`${departureCode} → ${arrivalCode}`}
@@ -341,7 +353,11 @@ export function FlightsList({
           const departureCode = airportCode(flight.departureAirport);
           const arrivalCode = airportCode(flight.arrivalAirport);
           const aircraft = aircraftName(flight);
-          const airlineLogo = trustedAirlineLogoSource(flight.airline);
+          const airlineLogo = trustedAirlineLogoSource(flightAirline(flight));
+          const airlineName = flightAirlineName(flight);
+          const icon: Image.ImageLike = airlineLogo
+            ? { source: airlineLogo, fallback: Icon.Airplane }
+            : Icon.Airplane;
           const friend = flight.friend;
           const subtitle = friend
             ? friendFirstName(friend)
@@ -359,11 +375,7 @@ export function FlightsList({
                   ? `${friend.id}:${flight.userFlightId ?? flight.flight.id}`
                   : flight.flight.id
               }
-              icon={
-                airlineLogo
-                  ? { source: airlineLogo, fallback: Icon.Airplane }
-                  : Icon.Airplane
-              }
+              icon={airlineName ? { value: icon, tooltip: airlineName } : icon}
               title={`${departureCode} → ${arrivalCode}`}
               subtitle={subtitle}
               keywords={[
@@ -371,7 +383,7 @@ export function FlightsList({
                 arrivalCode,
                 flight.departureAirport.name,
                 flight.arrivalAirport?.name ?? "",
-                flight.airline.name,
+                ...flightAirlineKeywords(flight),
                 aircraft,
                 flight.flight.aircraftRegistration ?? "",
                 friend?.fullName ?? "",

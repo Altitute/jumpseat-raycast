@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { flightAirline, flightAirlineName } from "./airline-brand";
 import type { UpcomingFlight } from "./api";
 import { flightSummary } from "./flight-presentation";
 import {
@@ -257,5 +258,49 @@ describe("menu-bar cache projection", () => {
     );
     source.arrivalAirport = null;
     expect(projectMenuBarFlight(source).arrivalAirport).toBeNull();
+  });
+
+  it("caches the brand the flight flies under alongside the airline", () => {
+    const source = flight("brand", "2026-09-20T01:00:00Z");
+    source.airline = {
+      iata: "TW",
+      name: "T'way Air",
+      logoUrl: "https://cdn.withjumpseat.com/airline-logos/TWB/light.svg",
+      logoDarkUrl: "https://cdn.withjumpseat.com/airline-logos/TWB/dark.svg",
+    };
+    source.flight.airlineBrand = {
+      airlineId: "44444444-4444-4444-8444-444444444444",
+      kind: "scheduled",
+      name: "Trinity Airways",
+      logoUrl: "https://cdn.withjumpseat.com/airline-logos/TW1/light.svg",
+      logoDarkUrl: null,
+    };
+    Reflect.set(source.flight.airlineBrand, "brandId", "PRIVATE-FIELD");
+    const projected = projectMenuBarFlight(source);
+    expect(projected.flight.airlineBrand).toStrictEqual({
+      airlineId: "44444444-4444-4444-8444-444444444444",
+      kind: "scheduled",
+      name: "Trinity Airways",
+      logoUrl: "https://cdn.withjumpseat.com/airline-logos/TW1/light.svg",
+      logoDarkUrl: null,
+    });
+    expect(flightAirline(projected)).toEqual({
+      iata: "TW",
+      name: "Trinity Airways",
+      logoUrl: "https://cdn.withjumpseat.com/airline-logos/TW1/light.svg",
+      logoDarkUrl: null,
+    });
+    expect(flightAirlineName(projected)).toBe("Trinity Airways");
+  });
+
+  it("omits the brand from the cache when the response has none", () => {
+    const projected = projectMenuBarFlight(
+      flight("plain", "2026-09-20T01:00:00Z"),
+    );
+    expect(projected.flight.airlineBrand).toBeUndefined();
+    expect(JSON.parse(JSON.stringify(projected)).flight).not.toHaveProperty(
+      "airlineBrand",
+    );
+    expect(flightAirlineName(projected)).toBe("Aer Lingus");
   });
 });
