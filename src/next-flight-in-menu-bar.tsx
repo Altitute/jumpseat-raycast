@@ -8,8 +8,8 @@ import {
   openExtensionPreferences,
   showHUD,
 } from "@raycast/api";
-import { useCachedPromise, withAccessToken } from "@raycast/utils";
-import { useRef } from "react";
+import { useCachedPromise, usePromise, withAccessToken } from "@raycast/utils";
+import { useRef, useState } from "react";
 import { flightAirline, flightAirlineName } from "./airline-brand";
 import { JumpseatApiError } from "./api";
 import { trustedAirlineMenuBarLogoSource } from "./assets";
@@ -37,6 +37,11 @@ import {
 } from "./menu-bar-flight";
 import { getJumpseatAccessToken, jumpseatOAuthClient } from "./oauth";
 import { fetchMenuBarFlights } from "./menu-bar-data";
+import {
+  cachedWhiteAirlineLogos,
+  loadWhiteAirlineLogos,
+} from "./white-airline-logo-store";
+import { trustedAirlineMenuBarIconSource } from "./white-airline-logos";
 
 function route(flight: MenuBarFlight): string {
   return `${airportCode(flight.departureAirport)} → ${airportCode(flight.arrivalAirport)}`;
@@ -241,6 +246,11 @@ function NextFlightInMenuBarCommand() {
     fetchMenuBarFlights(lastSuccessfulFlights.current),
   );
   if (!error && data) lastSuccessfulFlights.current = data;
+  const [initialWhiteLogos] = useState(cachedWhiteAirlineLogos);
+  const { data: whiteLogos, isLoading: isLoadingWhiteLogos } = usePromise(
+    loadWhiteAirlineLogos,
+    [],
+  );
 
   const load = resolveMenuBarLoadState({
     latestFlights: data,
@@ -259,8 +269,9 @@ function NextFlightInMenuBarCommand() {
     ) : null;
   }
 
-  const selectedAirlineLogo = trustedAirlineMenuBarLogoSource(
+  const selectedAirlineLogo = trustedAirlineMenuBarIconSource(
     flightAirline(selected),
+    whiteLogos ?? initialWhiteLogos,
   );
 
   return (
@@ -269,7 +280,7 @@ function NextFlightInMenuBarCommand() {
         source: selectedAirlineLogo ?? "unknown-airline.svg",
         fallback: "unknown-airline.svg",
       }}
-      isLoading={isLoading}
+      isLoading={isLoading || isLoadingWhiteLogos}
       title={menuBarTitle(selected, now)}
       tooltip="Next Jumpseat flight"
     >

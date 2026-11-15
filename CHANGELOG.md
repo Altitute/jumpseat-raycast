@@ -3,6 +3,7 @@
 ## [Dark Airline Logos] - {PR_MERGE_DATE}
 
 - Use dark airline logos in dark appearance, in both the flight lists and the menu bar.
+- Show the airline's white logo in a dark menu bar, falling back to its dark logo when the airline has no white one.
 - Show an airplane icon in the menu bar flight items when an airline logo fails to load.
 - Show the airline brand a flight flies under, such as a new name and logo after an announced rebrand, name it in the flight details and the menu bar, and find flights by either name.
 - Show each flight number once under its airline code, such as LH 459, even when it is stored with the code attached, and keep a codeshare number under its own airline.
