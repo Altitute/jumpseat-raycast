@@ -30,6 +30,7 @@ function isExpiresIn(value: unknown): value is number {
 
 export function parseOAuthTokenResponse(
   body: unknown,
+  requestedScope: string,
 ): JumpseatOAuthTokenResponse | null {
   if (!isRecord(body)) return null;
   if (
@@ -37,8 +38,7 @@ export function parseOAuthTokenResponse(
     !isCredential(body.refresh_token) ||
     body.token_type !== "Bearer" ||
     !isExpiresIn(body.expires_in) ||
-    typeof body.scope !== "string" ||
-    body.scope.length === 0
+    (body.scope !== undefined && body.scope !== requestedScope)
   ) {
     return null;
   }
@@ -46,7 +46,7 @@ export function parseOAuthTokenResponse(
     access_token: body.access_token,
     refresh_token: body.refresh_token,
     expires_in: body.expires_in,
-    scope: body.scope,
+    scope: requestedScope,
   };
 }
 
@@ -54,6 +54,22 @@ export function parseRefreshResponse(
   body: unknown,
 ): JumpseatRefreshResponse | null {
   if (!isRecord(body)) return null;
+
+  // New OAuth authority responses follow RFC 6749. Keep accepting the
+  // current API response while released versions and the authority overlap.
+  if (
+    isCredential(body.access_token) &&
+    isCredential(body.refresh_token) &&
+    body.token_type === "Bearer" &&
+    isExpiresIn(body.expires_in)
+  ) {
+    return {
+      accessToken: body.access_token,
+      refreshToken: body.refresh_token,
+      expiresIn: body.expires_in,
+    };
+  }
+
   if (
     !isCredential(body.accessToken) ||
     !isCredential(body.refreshToken) ||

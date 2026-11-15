@@ -8,14 +8,10 @@ import {
   openExtensionPreferences,
   showHUD,
 } from "@raycast/api";
-import { usePromise, withAccessToken } from "@raycast/utils";
-import { useEffect, useRef } from "react";
-import {
-  fetchUpcomingFlights,
-  JumpseatApiError,
-  type UpcomingFlight,
-} from "./api";
-import { trustedJumpseatAssetUrl } from "./assets";
+import { useCachedPromise, withAccessToken } from "@raycast/utils";
+import { useRef } from "react";
+import { JumpseatApiError } from "./api";
+import { trustedAirlineMenuBarLogoSource } from "./assets";
 import {
   flightSummary,
   // jumpseatFlightUrl,
@@ -31,16 +27,17 @@ import {
   formatTime,
 } from "./format";
 import {
+  type MenuBarFlight,
   isArrivedFlight,
-  menuBarRefreshInterval,
   menuBarTitle,
   operationalMenuBarStatus,
   resolveMenuBarLoadState,
   selectMenuBarFlight,
 } from "./menu-bar-flight";
 import { getJumpseatAccessToken, jumpseatOAuthClient } from "./oauth";
+import { fetchMenuBarFlights } from "./menu-bar-data";
 
-function route(flight: UpcomingFlight): string {
+function route(flight: MenuBarFlight): string {
   return `${airportCode(flight.departureAirport)} → ${airportCode(flight.arrivalAirport)}`;
 }
 
@@ -54,12 +51,12 @@ function joinedDetails(
   return present.length > 0 ? present.join(" · ") : fallback;
 }
 
-function FlightDetails({ flight }: { flight: UpcomingFlight }) {
+function FlightDetails({ flight }: { flight: MenuBarFlight }) {
   const departure = effectiveDeparture(flight);
   const arrival = effectiveArrival(flight);
   const status =
     operationalMenuBarStatus(flight) ?? formatFlightStatus(flight.flight);
-  const logo = trustedJumpseatAssetUrl(flight.airline.logoUrl, "airline-logo");
+  const logo = trustedAirlineMenuBarLogoSource(flight.airline);
 
   return (
     <>
@@ -119,10 +116,6 @@ function FlightDetails({ flight }: { flight: UpcomingFlight }) {
         />
       </MenuBarExtra.Section>
       <MenuBarExtra.Section title="Flight">
-        <MenuBarExtra.Item
-          title="Seat"
-          subtitle={valueOrFallback(flight.seatNumber, "Not added")}
-        />
         <MenuBarExtra.Item title="Aircraft" subtitle={aircraftName(flight)} />
       </MenuBarExtra.Section>
     </>
@@ -133,8 +126,8 @@ function OtherFlights({
   flights,
   selected,
 }: {
-  flights: UpcomingFlight[];
-  selected: UpcomingFlight | null;
+  flights: MenuBarFlight[];
+  selected: MenuBarFlight | null;
 }) {
   const remaining = flights.filter(
     (flight) => flight.flight.id !== selected?.flight.id,
@@ -161,10 +154,7 @@ function OtherFlights({
   return (
     <MenuBarExtra.Section title="Other Flights">
       {visible.map((flight) => {
-        const logo = trustedJumpseatAssetUrl(
-          flight.airline.logoUrl,
-          "airline-logo",
-        );
+        const logo = trustedAirlineMenuBarLogoSource(flight.airline);
         return (
           <MenuBarExtra.Item
             key={flight.flight.id}
@@ -190,7 +180,7 @@ function MenuActions({
   flight,
   refresh,
 }: {
-  flight: UpcomingFlight | null;
+  flight: MenuBarFlight | null;
   refresh: () => void;
 }) {
   return (
@@ -238,8 +228,8 @@ function MenuActions({
 
 function NextFlightInMenuBarCommand() {
   const { data, error, isLoading, revalidate } =
-    usePromise(fetchUpcomingFlights);
-  const lastSuccessfulFlights = useRef<UpcomingFlight[] | undefined>(undefined);
+    useCachedPromise(fetchMenuBarFlights);
+  const lastSuccessfulFlights = useRef<MenuBarFlight[] | undefined>(undefined);
   if (!error && data) lastSuccessfulFlights.current = data;
 
   const load = resolveMenuBarLoadState({
@@ -252,25 +242,14 @@ function NextFlightInMenuBarCommand() {
   });
   const now = new Date();
   const selected = selectMenuBarFlight(load.flights, now);
-  const selectedAirlineLogo = selected
-    ? trustedJumpseatAssetUrl(selected.airline.logoUrl, "airline-logo")
-    : undefined;
-  const refreshInterval = menuBarRefreshInterval(selected, now);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      void revalidate();
-    }, refreshInterval);
-    return () => clearInterval(interval);
-  }, [refreshInterval, revalidate]);
+  if (!selected) {
+    return isLoading ? (
+      <MenuBarExtra isLoading tooltip="Next Jumpseat flight" />
+    ) : null;
+  }
 
-  const title = selected
-    ? menuBarTitle(selected, now)
-    : load.state === "error"
-      ? "Flight Unavailable"
-      : load.state === "loading"
-        ? undefined
-        : "No Flights";
+  const selectedAirlineLogo = trustedAirlineMenuBarLogoSource(selected.airline);
 
   return (
     <MenuBarExtra
@@ -278,11 +257,11 @@ function NextFlightInMenuBarCommand() {
         source: selectedAirlineLogo ?? "unknown-airline.svg",
         fallback: "unknown-airline.svg",
       }}
-      isLoading={isLoading && load.state === "loading"}
-      title={title}
+      isLoading={isLoading}
+      title={menuBarTitle(selected, now)}
       tooltip="Next Jumpseat flight"
     >
-      {selected ? <FlightDetails flight={selected} /> : null}
+      <FlightDetails flight={selected} />
       <OtherFlights flights={load.flights} selected={selected} />
       {load.state === "stale-error" ? (
         <MenuBarExtra.Section>
@@ -290,24 +269,6 @@ function NextFlightInMenuBarCommand() {
             icon={Icon.Warning}
             title="Could Not Refresh Flights"
             subtitle={error?.message}
-          />
-        </MenuBarExtra.Section>
-      ) : null}
-      {load.state === "error" ? (
-        <MenuBarExtra.Section>
-          <MenuBarExtra.Item
-            icon={Icon.Warning}
-            title="Could Not Load Flights"
-            subtitle={error?.message}
-          />
-        </MenuBarExtra.Section>
-      ) : null}
-      {load.state === "empty" ? (
-        <MenuBarExtra.Section>
-          <MenuBarExtra.Item
-            icon={Icon.Airplane}
-            title="No Upcoming Flights"
-            subtitle="Add a flight in Jumpseat to see it here."
           />
         </MenuBarExtra.Section>
       ) : null}

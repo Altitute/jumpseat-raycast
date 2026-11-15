@@ -12,6 +12,7 @@ export interface AirlineSummary {
   iata: string | null;
   name: string;
   logoUrl?: string | null;
+  logoDarkUrl?: string | null;
 }
 
 export interface FlightSummary {
@@ -54,6 +55,30 @@ export interface UpcomingFlight {
   seatCabinClass: string | null;
   seatPosition: string | null;
   bookingNumber: string | null;
+}
+
+export interface FriendSummary {
+  id: string;
+  fullName: string | null;
+  handle: string;
+  profilePictureUrl: string | null;
+}
+
+export interface FriendUpcomingFlight extends UpcomingFlight {
+  friend: FriendSummary;
+  userFlightId: string;
+}
+
+export interface FriendUpcomingFlightsCursor {
+  departureTime: string;
+  flightId: string;
+  userFlightId?: string;
+}
+
+export interface FriendUpcomingFlightsPage {
+  flights: FriendUpcomingFlight[];
+  nextCursor: FriendUpcomingFlightsCursor | null;
+  hasMore: boolean;
 }
 
 const UUID_PATTERN =
@@ -123,7 +148,8 @@ function isAirlineSummary(value: unknown): value is AirlineSummary {
   return (
     isNullableString(value.iata, 8) &&
     isBoundedString(value.name, 256) &&
-    isOptionalNullableString(value.logoUrl, 2_048)
+    isOptionalNullableString(value.logoUrl, 2_048) &&
+    isOptionalNullableString(value.logoDarkUrl, 2_048)
   );
 }
 
@@ -176,6 +202,48 @@ function isUpcomingFlight(value: unknown): value is UpcomingFlight {
   );
 }
 
+function isFriendSummary(value: unknown): value is FriendSummary {
+  if (!isRecord(value)) return false;
+  return (
+    isBoundedString(value.id, 36) &&
+    UUID_PATTERN.test(value.id) &&
+    isNullableString(value.fullName, 256) &&
+    isBoundedString(value.handle, 64) &&
+    isNullableString(value.profilePictureUrl, 2_048)
+  );
+}
+
+function parseFriendUpcomingFlight(
+  value: unknown,
+): FriendUpcomingFlight | null {
+  if (
+    !isRecord(value) ||
+    !isFlightSummary(value.flight) ||
+    !isAirlineSummary(value.airline) ||
+    !isAirportSummary(value.departureAirport) ||
+    (value.arrivalAirport !== null &&
+      !isAirportSummary(value.arrivalAirport)) ||
+    !isFriendSummary(value.user) ||
+    !isBoundedString(value.userFlightId, 36) ||
+    !UUID_PATTERN.test(value.userFlightId)
+  ) {
+    return null;
+  }
+
+  return {
+    flight: value.flight,
+    airline: value.airline,
+    departureAirport: value.departureAirport,
+    arrivalAirport: value.arrivalAirport,
+    seatNumber: null,
+    seatCabinClass: null,
+    seatPosition: null,
+    bookingNumber: null,
+    friend: value.user,
+    userFlightId: value.userFlightId,
+  };
+}
+
 export function parseUpcomingFlightsResponse(
   body: unknown,
 ): UpcomingFlight[] | null {
@@ -187,4 +255,49 @@ export function parseUpcomingFlightsResponse(
     return null;
   }
   return body.flights.every(isUpcomingFlight) ? body.flights : null;
+}
+
+export function parseFriendUpcomingFlightsResponse(
+  body: unknown,
+): FriendUpcomingFlightsPage | null {
+  if (
+    !isRecord(body) ||
+    !Array.isArray(body.flights) ||
+    body.flights.length > 100 ||
+    typeof body.hasMore !== "boolean"
+  ) {
+    return null;
+  }
+
+  const flights: FriendUpcomingFlight[] = [];
+  for (const value of body.flights) {
+    const flight = parseFriendUpcomingFlight(value);
+    if (!flight) return null;
+    flights.push(flight);
+  }
+
+  let nextCursor: FriendUpcomingFlightsCursor | null = null;
+  if (body.nextCursor !== null) {
+    if (
+      !isRecord(body.nextCursor) ||
+      !isDateString(body.nextCursor.departureTime) ||
+      !isBoundedString(body.nextCursor.flightId, 36) ||
+      !UUID_PATTERN.test(body.nextCursor.flightId) ||
+      (body.nextCursor.userFlightId !== undefined &&
+        (!isBoundedString(body.nextCursor.userFlightId, 36) ||
+          !UUID_PATTERN.test(body.nextCursor.userFlightId)))
+    ) {
+      return null;
+    }
+    nextCursor = {
+      departureTime: body.nextCursor.departureTime,
+      flightId: body.nextCursor.flightId,
+      ...(body.nextCursor.userFlightId
+        ? { userFlightId: body.nextCursor.userFlightId }
+        : {}),
+    };
+  }
+
+  if (body.hasMore !== (nextCursor !== null)) return null;
+  return { flights, nextCursor, hasMore: body.hasMore };
 }
