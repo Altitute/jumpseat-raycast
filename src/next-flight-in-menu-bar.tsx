@@ -24,11 +24,14 @@ import {
   displayFlightNumber,
   effectiveArrival,
   effectiveDeparture,
+  formatCompactDuration,
   formatFlightStatus,
+  formatProgressBar,
   formatTime,
 } from "./format";
 import {
   type MenuBarFlight,
+  inFlightProgress,
   isArrivedFlight,
   menuBarTitle,
   operationalMenuBarStatus,
@@ -57,7 +60,58 @@ function joinedDetails(
   return present.length > 0 ? present.join(" · ") : fallback;
 }
 
-function FlightDetails({ flight }: { flight: MenuBarFlight }) {
+function clockTime(value: Date, timeZone: string | undefined): string {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone,
+  }).format(value);
+}
+
+function InFlightSection({
+  flight,
+  now,
+}: {
+  flight: MenuBarFlight;
+  now: Date;
+}) {
+  const progress = inFlightProgress(flight, now);
+  if (!progress) return null;
+
+  const arrivalTimeZone = flight.arrivalAirport?.timeZoneRegionName ?? "UTC";
+  // Only worth a row when the clock at home differs from the destination's.
+  const showHomeTime =
+    clockTime(progress.arrival, undefined) !==
+    clockTime(progress.arrival, arrivalTimeZone);
+
+  return (
+    <MenuBarExtra.Section title="In Flight">
+      <MenuBarExtra.Item
+        title="Progress"
+        subtitle={`${formatProgressBar(progress.fraction)} ${Math.round(progress.fraction * 100)}%`}
+      />
+      <MenuBarExtra.Item
+        title="Time Remaining"
+        subtitle={formatCompactDuration(progress.remainingMs)}
+      />
+      <MenuBarExtra.Item
+        title={progress.startIsTakeoff ? "Took Off" : "Departed"}
+        subtitle={formatTime(
+          progress.start,
+          flight.departureAirport.timeZoneRegionName,
+        )}
+      />
+      {showHomeTime ? (
+        <MenuBarExtra.Item
+          title="Arrives (Your Time)"
+          subtitle={clockTime(progress.arrival, undefined)}
+        />
+      ) : null}
+    </MenuBarExtra.Section>
+  );
+}
+
+function FlightDetails({ flight, now }: { flight: MenuBarFlight; now: Date }) {
   const departure = effectiveDeparture(flight);
   const arrival = effectiveArrival(flight);
   const status =
@@ -76,6 +130,7 @@ function FlightDetails({ flight }: { flight: MenuBarFlight }) {
         />
         <MenuBarExtra.Item title="Status" subtitle={status} />
       </MenuBarExtra.Section>
+      <InFlightSection flight={flight} now={now} />
       <MenuBarExtra.Section title="Departure">
         <MenuBarExtra.Item
           title="Time"
@@ -284,7 +339,7 @@ function NextFlightInMenuBarCommand() {
       title={menuBarTitle(selected, now)}
       tooltip="Next Jumpseat flight"
     >
-      <FlightDetails flight={selected} />
+      <FlightDetails flight={selected} now={now} />
       <OtherFlights flights={load.flights} selected={selected} />
       {load.state === "stale-error" ? (
         <MenuBarExtra.Section>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   parseFriendUpcomingFlightsResponse,
+  parseOwnFlightsPage,
   parseUpcomingFlightsResponse,
 } from "./api-response";
 import { displayFlightNumber } from "./format";
@@ -219,6 +220,41 @@ describe("upcoming flights response parsing", () => {
     expect(
       parseUpcomingFlightsResponse({ flights: [invalidTimeZone] }),
     ).toBeNull();
+  });
+});
+
+describe("past flights page parsing", () => {
+  const cursor = {
+    departureTime: "2026-03-01T10:00:00.000Z",
+    flightId: "11111111-1111-4111-8111-111111111111",
+  };
+
+  it("accepts a page and its next cursor", () => {
+    const flight = validFlight();
+    expect(
+      parseOwnFlightsPage({
+        flights: [flight],
+        hasMore: true,
+        nextCursor: cursor,
+      }),
+    ).toEqual({ flights: [flight], hasMore: true, nextCursor: cursor });
+    expect(
+      parseOwnFlightsPage({ flights: [], hasMore: false, nextCursor: null }),
+    ).toEqual({ flights: [], hasMore: false, nextCursor: null });
+  });
+
+  it("rejects a page that cannot advance or has a malformed cursor", () => {
+    expect(
+      parseOwnFlightsPage({ flights: [], hasMore: true, nextCursor: null }),
+    ).toBeNull();
+    expect(
+      parseOwnFlightsPage({
+        flights: [],
+        hasMore: true,
+        nextCursor: { ...cursor, flightId: "not-a-uuid" },
+      }),
+    ).toBeNull();
+    expect(parseOwnFlightsPage({ flights: [] })).toBeNull();
   });
 });
 

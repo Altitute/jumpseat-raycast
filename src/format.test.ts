@@ -6,9 +6,61 @@ import {
   effectiveDeparture,
   flightNumberKeywords,
   formatCompactCountdown,
+  formatCompactDuration,
   formatCountdown,
   formatFlightStatus,
+  formatListDate,
+  formatProgressBar,
 } from "./format";
+
+describe("list date formatting", () => {
+  const now = new Date("2026-11-15T12:00:00.000Z");
+
+  it("adds the year only outside the current year, in the airport's zone", () => {
+    const sameYear = formatListDate(
+      new Date("2026-11-28T10:00:00.000Z"),
+      "Europe/Warsaw",
+      now,
+    );
+    const otherYear = formatListDate(
+      new Date("2025-02-01T10:00:00.000Z"),
+      "Europe/Warsaw",
+      now,
+    );
+    // Late evening UTC on 31 Dec is already the next year in Tokyo.
+    const acrossMidnight = formatListDate(
+      new Date("2025-12-31T20:00:00.000Z"),
+      "Asia/Tokyo",
+      now,
+    );
+
+    expect(sameYear).toContain("28");
+    expect(sameYear).not.toContain("2026");
+    expect(otherYear).toContain("2025");
+    expect(acrossMidnight).not.toContain("2025");
+    expect(acrossMidnight).not.toContain("2026");
+  });
+});
+
+describe("in-flight duration and progress formatting", () => {
+  it.each([
+    [30_000, "1m"],
+    [59 * 60_000, "59m"],
+    [60 * 60_000, "1h"],
+    [(2 * 60 + 40) * 60_000, "2h 40m"],
+    [(2 * 60 + 39) * 60_000 + 1, "2h 40m"],
+    [14 * 60 * 60_000, "14h"],
+  ])("formats %d ms as %s", (milliseconds, expected) => {
+    expect(formatCompactDuration(milliseconds)).toBe(expected);
+  });
+
+  it("fills a clamped progress bar", () => {
+    expect(formatProgressBar(0)).toBe("▱▱▱▱▱▱▱▱▱▱");
+    expect(formatProgressBar(0.62)).toBe("▰▰▰▰▰▰▱▱▱▱");
+    expect(formatProgressBar(1.4)).toBe("▰▰▰▰▰▰▰▰▰▰");
+    expect(formatProgressBar(-1, 4)).toBe("▱▱▱▱");
+  });
+});
 import type { UpcomingFlight } from "./api";
 
 describe("effective flight times", () => {

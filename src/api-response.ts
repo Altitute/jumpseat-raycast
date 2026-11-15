@@ -292,6 +292,38 @@ export function parseUpcomingFlightsResponse(
   return body.flights.every(isUpcomingFlight) ? body.flights : null;
 }
 
+export interface OwnFlightsCursor {
+  departureTime: string;
+  flightId: string;
+}
+
+export interface OwnFlightsPage {
+  flights: UpcomingFlight[];
+  nextCursor: OwnFlightsCursor | null;
+  hasMore: boolean;
+}
+
+function isOwnFlightsCursor(value: unknown): value is OwnFlightsCursor {
+  return (
+    isRecord(value) &&
+    isDateString(value.departureTime) &&
+    isBoundedString(value.flightId, 36) &&
+    UUID_PATTERN.test(value.flightId)
+  );
+}
+
+export function parseOwnFlightsPage(body: unknown): OwnFlightsPage | null {
+  const flights = parseUpcomingFlightsResponse(body);
+  if (!flights || !isRecord(body) || typeof body.hasMore !== "boolean") {
+    return null;
+  }
+  const nextCursor = body.nextCursor ?? null;
+  if (nextCursor !== null && !isOwnFlightsCursor(nextCursor)) return null;
+  // A page that claims more without a cursor could never advance.
+  if (body.hasMore && nextCursor === null) return null;
+  return { flights, nextCursor, hasMore: body.hasMore };
+}
+
 export function parseFriendUpcomingFlightsResponse(
   body: unknown,
 ): FriendUpcomingFlightsPage | null {
