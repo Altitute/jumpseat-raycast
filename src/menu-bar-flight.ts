@@ -1,8 +1,10 @@
 import type { UpcomingFlight } from "./api";
 import {
   airportCode,
+  effectiveArrival,
   effectiveDeparture,
   formatCompactCountdown,
+  formatCompactDuration,
   formatFlightStatus,
 } from "./format";
 
@@ -218,13 +220,61 @@ export function operationalMenuBarStatus(flight: MenuBarFlight): string | null {
   return null;
 }
 
+export interface InFlightProgress {
+  start: Date;
+  startIsTakeoff: boolean;
+  arrival: Date;
+  remainingMs: number;
+  fraction: number;
+}
+
+// A time-based estimate: the API reports no live position, so progress runs
+// from takeoff to the best known arrival time and corrects itself whenever the
+// arrival estimate is updated. Without a takeoff time it starts at the best
+// known departure instead.
+export function inFlightProgress(
+  flight: MenuBarFlight,
+  now = new Date(),
+): InFlightProgress | null {
+  if (operationalMenuBarStatus(flight) !== "In Flight") return null;
+  const arrival = effectiveArrival(flight);
+  if (!arrival) return null;
+
+  const takeoff = flight.flight.actualTakeoffTime;
+  const start = takeoff ? new Date(takeoff) : effectiveDeparture(flight);
+  const remainingMs = arrival.getTime() - now.getTime();
+  const totalMs = arrival.getTime() - start.getTime();
+  // An arrival estimate already in the past is stale; claim nothing.
+  if (remainingMs <= 0 || totalMs <= 0) return null;
+
+  const elapsed = (now.getTime() - start.getTime()) / totalMs;
+  return {
+    start,
+    startIsTakeoff: Boolean(takeoff),
+    arrival,
+    remainingMs,
+    fraction: Math.min(Math.max(elapsed, 0), 1),
+  };
+}
+
+function destination(flight: MenuBarFlight): string {
+  return (
+    flight.arrivalAirport?.city?.trim() || airportCode(flight.arrivalAirport)
+  );
+}
+
 export function menuBarTitle(flight: MenuBarFlight, now = new Date()): string {
+  const progress = inFlightProgress(flight, now);
+  if (progress) {
+    return `${formatCompactDuration(progress.remainingMs)} to ${destination(flight)}`;
+  }
+
   const operationalStatus = operationalMenuBarStatus(flight);
+  const belt = flight.flight.belt?.trim();
+  if (operationalStatus === "Taxi In" && belt) return `Taxi In · Belt ${belt}`;
   if (operationalStatus) return operationalStatus;
 
-  const city =
-    flight.arrivalAirport?.city?.trim() || airportCode(flight.arrivalAirport);
-  return `${city} in ${formatCompactCountdown(effectiveDeparture(flight), now)}`;
+  return `${destination(flight)} in ${formatCompactCountdown(effectiveDeparture(flight), now)}`;
 }
 
 export type MenuBarLoadState =
