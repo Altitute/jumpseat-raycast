@@ -411,6 +411,23 @@ async function refreshStoredAccessToken(
     );
   }
 
+  // A reconnect may have stored a new grant while this refresh was in flight.
+  // Never overwrite it with the superseded grant's rotated tokens: keep the
+  // new grant and revoke the rotated token nothing will use.
+  const current = await jumpseatOAuthClient.getTokens();
+  if (current?.refreshToken !== tokens.refreshToken) {
+    await revokeRefreshToken(
+      configuration,
+      protocol,
+      issuer,
+      refreshed.refreshToken,
+    );
+    if (current?.accessToken) return current.accessToken;
+    throw new JumpseatAuthenticationError(
+      "Your Jumpseat session has expired. Try again to sign in.",
+    );
+  }
+
   await jumpseatOAuthClient.setTokens({
     accessToken: refreshed.accessToken,
     refreshToken: refreshed.refreshToken,
