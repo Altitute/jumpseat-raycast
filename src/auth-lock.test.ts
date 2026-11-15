@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, utimes } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -29,7 +29,11 @@ describe("auth storage lock", () => {
       "a",
       "b",
     ]);
-    expect(events).toEqual(["a:start", "a:end", "b:start", "b:end"]);
+    // Either may win the lock, but one must finish before the other starts.
+    expect([
+      ["a:start", "a:end", "b:start", "b:end"],
+      ["b:start", "b:end", "a:start", "a:end"],
+    ]).toContainEqual(events);
     await expect(
       withAuthStorageLock(directory, async () => "again"),
     ).resolves.toBe("again");
@@ -55,5 +59,37 @@ describe("auth storage lock", () => {
     await expect(
       withAuthStorageLock(directory, async () => "ok"),
     ).resolves.toBe("ok");
+  });
+
+  it("lets only one of several contenders take over a stale lock", async () => {
+    const stale = join(directory, "auth-storage.lock");
+    await mkdir(stale);
+    const longAgo = new Date(Date.now() - 60_000);
+    await utimes(stale, longAgo, longAgo);
+
+    let active = 0;
+    let maxActive = 0;
+    await Promise.all(
+      Array.from({ length: 6 }, () =>
+        withAuthStorageLock(directory, async () => {
+          active += 1;
+          maxActive = Math.max(maxActive, active);
+          await new Promise((resolve) => setTimeout(resolve, 15));
+          active -= 1;
+        }),
+      ),
+    );
+
+    expect(maxActive).toBe(1);
+  });
+
+  it("never removes a lock it no longer owns", async () => {
+    const lock = join(directory, "auth-storage.lock");
+    await withAuthStorageLock(directory, async () => {
+      // Simulate another process having taken the lock over meanwhile.
+      await writeFile(join(lock, "owner"), "another-process");
+    });
+
+    await expect(stat(lock)).resolves.toBeDefined();
   });
 });
