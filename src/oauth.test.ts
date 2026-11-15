@@ -427,6 +427,28 @@ describe.each(["central", "legacy"])("%s refresh failures", (protocol) => {
     expect(String(revoke?.[1]?.body)).toContain("rotated-refresh");
   });
 
+  it("keeps rotated tokens a concurrent refresh already stored", async () => {
+    mocks.getTokens
+      .mockResolvedValueOnce({ refreshToken: "stored-refresh" })
+      .mockResolvedValue({
+        accessToken: "rotated-access",
+        refreshToken: "rotated-refresh",
+      });
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        access_token: "rotated-access",
+        refresh_token: "rotated-refresh",
+        token_type: "Bearer",
+        expires_in: 3600,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(refreshJumpseatAccessToken()).resolves.toBe("rotated-access");
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(mocks.setTokens).not.toHaveBeenCalled();
+  });
+
   it("can retry a transient failure and persist rotated tokens", async () => {
     // A grant made before past flights keeps its upcoming-only scope.
     mocks.getTokens.mockResolvedValue({

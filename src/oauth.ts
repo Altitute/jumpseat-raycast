@@ -411,10 +411,14 @@ async function refreshStoredAccessToken(
     );
   }
 
-  // A reconnect may have stored a new grant while this refresh was in flight.
-  // Never overwrite it with the superseded grant's rotated tokens: keep the
-  // new grant and revoke the rotated token nothing will use.
+  // Stored tokens can change while this refresh is in flight. A concurrent
+  // refresh replaying the same request already stored these rotated tokens;
+  // keep them. A reconnect stored a new grant; never overwrite it with the
+  // superseded grant's rotated tokens, and revoke the token nothing will use.
   const current = await jumpseatOAuthClient.getTokens();
+  if (current?.refreshToken === refreshed.refreshToken && current.accessToken) {
+    return current.accessToken;
+  }
   if (current?.refreshToken !== tokens.refreshToken) {
     await revokeRefreshToken(
       configuration,
