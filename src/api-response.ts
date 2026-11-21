@@ -235,7 +235,7 @@ function isUpcomingFlight(value: unknown): value is UpcomingFlight {
     isNullableString(value.seatCabinClass, 64) &&
     isNullableString(value.seatPosition, 64) &&
     isNullableString(value.bookingNumber, 128) &&
-    isOptionalNullableString(value.notes, 2_000)
+    isOptionalNullableString(value.notes, 20_000)
   );
 }
 

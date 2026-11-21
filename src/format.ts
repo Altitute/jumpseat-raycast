@@ -244,7 +244,7 @@ export function privateNotesMarkdown(
   if (!trimmed) return null;
   const body = trimmed
     .split(/\r?\n/)
-    .map((line) => escapeMarkdown(line))
+    .map((line) => escapeMarkdown(line).replace(/[&=~]/g, "\\$&"))
     .join("  \n");
   return `**Private Notes**\n\n${body}`;
 }

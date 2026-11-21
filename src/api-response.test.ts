@@ -129,7 +129,7 @@ describe("upcoming flights response parsing", () => {
     ).not.toBeNull();
     expect(
       parseUpcomingFlightsResponse({
-        flights: [{ ...validFlight(), notes: "x".repeat(2_001) }],
+        flights: [{ ...validFlight(), notes: "x".repeat(20_001) }],
       }),
     ).toBeNull();
   });

@@ -261,6 +261,12 @@ describe("private notes markdown", () => {
     );
   });
 
+  it("keeps setext underlines, entities and tildes literal", () => {
+    expect(privateNotesMarkdown("Lounge\n====\nTom &amp; ~Jo~")).toBe(
+      "**Private Notes**\n\nLounge  \n\\=\\=\\=\\=  \nTom \\&amp; \\~Jo\\~",
+    );
+  });
+
   it("returns null for a missing or blank note", () => {
     expect(privateNotesMarkdown(null)).toBeNull();
     expect(privateNotesMarkdown(undefined)).toBeNull();
