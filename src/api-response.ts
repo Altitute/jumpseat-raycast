@@ -68,6 +68,7 @@ export interface UpcomingFlight {
   seatCabinClass: string | null;
   seatPosition: string | null;
   bookingNumber: string | null;
+  notes?: string | null;
 }
 
 export interface FriendSummary {
@@ -233,7 +234,8 @@ function isUpcomingFlight(value: unknown): value is UpcomingFlight {
     isNullableString(value.seatNumber, 32) &&
     isNullableString(value.seatCabinClass, 64) &&
     isNullableString(value.seatPosition, 64) &&
-    isNullableString(value.bookingNumber, 128)
+    isNullableString(value.bookingNumber, 128) &&
+    isOptionalNullableString(value.notes, 20_000)
   );
 }
 

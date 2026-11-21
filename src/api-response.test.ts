@@ -117,6 +117,23 @@ describe("upcoming flights response parsing", () => {
     ).toBeNull();
   });
 
+  it("accepts an owner's private notes and responses without them", () => {
+    const withNotes = { ...validFlight(), notes: "Window seat, great view" };
+    expect(
+      parseUpcomingFlightsResponse({ flights: [withNotes] })?.[0]?.notes,
+    ).toBe("Window seat, great view");
+    expect(
+      parseUpcomingFlightsResponse({
+        flights: [{ ...validFlight(), notes: null }],
+      }),
+    ).not.toBeNull();
+    expect(
+      parseUpcomingFlightsResponse({
+        flights: [{ ...validFlight(), notes: "x".repeat(20_001) }],
+      }),
+    ).toBeNull();
+  });
+
   it("keeps the airline ICAO code and accepts responses without one", () => {
     const flight = validFlight();
     expect(
