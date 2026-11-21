@@ -42,6 +42,7 @@ import {
   formatFlightStatus,
   formatListDate,
   formatTime,
+  privateNotesMarkdown,
 } from "./format";
 import { reconnectJumpseat } from "./oauth";
 import { buildRouteMapUrl } from "./route-map";
@@ -143,9 +144,14 @@ function FlightDetail({
     arrivalIata: flight.arrivalAirport?.iata,
     theme: environment.appearance,
   });
-  const markdown = routeMapUrl
+  const routeMapMarkdown = routeMapUrl
     ? `![${escapeMarkdown(`${departureCode} to ${arrivalCode} route map`)}](${routeMapUrl})`
     : null;
+  const notesMarkdown = showBookingDetails
+    ? privateNotesMarkdown(flight.notes)
+    : null;
+  const markdown =
+    [routeMapMarkdown, notesMarkdown].filter(Boolean).join("\n\n") || null;
 
   return (
     <List.Item.Detail

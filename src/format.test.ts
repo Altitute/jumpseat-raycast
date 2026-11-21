@@ -11,6 +11,7 @@ import {
   formatFlightStatus,
   formatListDate,
   formatProgressBar,
+  privateNotesMarkdown,
 } from "./format";
 
 describe("list date formatting", () => {
@@ -250,5 +251,19 @@ describe("flight status formatting", () => {
         flightState: "scheduled",
       }),
     ).toBe("On time");
+  });
+});
+
+describe("private notes markdown", () => {
+  it("escapes markdown and keeps line breaks", () => {
+    expect(privateNotesMarkdown("  Row 12 *best*\nGate B-4  ")).toBe(
+      "**Private Notes**\n\nRow 12 \\*best\\*  \nGate B\\-4",
+    );
+  });
+
+  it("returns null for a missing or blank note", () => {
+    expect(privateNotesMarkdown(null)).toBeNull();
+    expect(privateNotesMarkdown(undefined)).toBeNull();
+    expect(privateNotesMarkdown("   ")).toBeNull();
   });
 });

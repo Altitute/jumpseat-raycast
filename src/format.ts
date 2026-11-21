@@ -236,3 +236,15 @@ export function aircraftName(flight: { flight: AircraftNameFields }): string {
 export function escapeMarkdown(value: string): string {
   return value.replace(/([\\`*_{}[\]()<>#+\-.!|])/g, "\\$1");
 }
+
+export function privateNotesMarkdown(
+  notes: string | null | undefined,
+): string | null {
+  const trimmed = notes?.trim();
+  if (!trimmed) return null;
+  const body = trimmed
+    .split(/\r?\n/)
+    .map((line) => escapeMarkdown(line))
+    .join("  \n");
+  return `**Private Notes**\n\n${body}`;
+}
