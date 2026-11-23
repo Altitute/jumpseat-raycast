@@ -277,8 +277,7 @@ export function menuBarTitle(flight: MenuBarFlight, now = new Date()): string {
   return `${destination(flight)} in ${formatCompactCountdown(effectiveDeparture(flight), now)}`;
 }
 
-type MenuBarLoadState =
-  "loading" | "ready" | "empty" | "stale-error" | "error";
+type MenuBarLoadState = "loading" | "ready" | "empty" | "stale-error" | "error";
 
 export function resolveMenuBarLoadState({
   latestFlights,
