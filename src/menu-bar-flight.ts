@@ -155,7 +155,7 @@ export function isArrivedFlight(flight: MenuBarFlight): boolean {
   );
 }
 
-export function isActiveFlight(flight: MenuBarFlight): boolean {
+function isActiveFlight(flight: MenuBarFlight): boolean {
   if (isArrivedFlight(flight)) return false;
   if (flight.flight.actualGateDepartureTime) return true;
   if (flight.flight.actualTakeoffTime) return true;
@@ -220,7 +220,7 @@ export function operationalMenuBarStatus(flight: MenuBarFlight): string | null {
   return null;
 }
 
-export interface InFlightProgress {
+interface InFlightProgress {
   start: Date;
   startIsTakeoff: boolean;
   arrival: Date;
@@ -277,7 +277,7 @@ export function menuBarTitle(flight: MenuBarFlight, now = new Date()): string {
   return `${destination(flight)} in ${formatCompactCountdown(effectiveDeparture(flight), now)}`;
 }
 
-export type MenuBarLoadState =
+type MenuBarLoadState =
   "loading" | "ready" | "empty" | "stale-error" | "error";
 
 export function resolveMenuBarLoadState({

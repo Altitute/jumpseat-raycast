@@ -3,18 +3,18 @@
 // Stored numbers arrive both bare ("459") and already prefixed ("LH459",
 // "lh 459"), so callers must never join the two values themselves.
 
-export interface FlightDesignatorInput {
+interface FlightDesignatorInput {
   airlineCode?: string | null;
   alternateAirlineCode?: string | null;
   flightNumber?: string | null;
 }
 
-export interface FlightDesignator {
+interface FlightDesignator {
   airlineCode: string | null;
   flightNumber: string;
 }
 
-export type FlightDesignatorStyle = "compact" | "spaced";
+type FlightDesignatorStyle = "compact" | "spaced";
 
 const WHITESPACE = /\p{White_Space}/gu;
 const CODE = /^[A-Z0-9]{2,3}$/;
