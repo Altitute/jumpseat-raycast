@@ -3,14 +3,12 @@ const JUMPSEAT_API_HOST = "api.withjumpseat.com";
 const PROFILE_PICTURE_PATH_PREFIX =
   "/api/v1/media/profile-pictures/profile-pictures/";
 
-export type JumpseatAssetKind =
-  "airline-logo" | "airline-white-logo" | "country-flag";
+type JumpseatAssetKind = "airline-logo" | "airline-white-logo";
 
 const assetPathPatterns: Record<JumpseatAssetKind, RegExp> = {
   "airline-logo": /^\/airline-logos\/[A-Z0-9]{3}\/(?:light|dark)\.(?:svg|png)$/,
   "airline-white-logo":
     /^\/airline-logos\/[A-Z0-9]{3}\/(?:white\.png|rasters\/white\/[a-f0-9]{64}\/(?:96|192|512)\.png)$/,
-  "country-flag": /^\/country-flags\/[A-Z]{2}\.svg$/,
 };
 
 export function trustedJumpseatAssetUrl(
