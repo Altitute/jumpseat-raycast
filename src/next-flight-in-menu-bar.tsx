@@ -4,7 +4,6 @@ import {
   LaunchType,
   MenuBarExtra,
   launchCommand,
-  // open,
   openExtensionPreferences,
   showHUD,
 } from "@raycast/api";
@@ -13,11 +12,7 @@ import { useRef, useState } from "react";
 import { flightAirline, flightAirlineName } from "./airline-brand";
 import { JumpseatApiError } from "./api";
 import { trustedAirlineMenuBarLogoSource } from "./assets";
-import {
-  flightSummary,
-  // jumpseatFlightUrl,
-  valueOrFallback,
-} from "./flight-presentation";
+import { flightSummary, valueOrFallback } from "./flight-presentation";
 import {
   aircraftName,
   airportCode,
@@ -237,7 +232,6 @@ function OtherFlights({
                     flight.departureAirport.timeZoneRegionName,
                   )
             }
-            // onAction={() => open(jumpseatFlightUrl(flight))}
           />
         );
       })}
@@ -255,21 +249,14 @@ function MenuActions({
   return (
     <MenuBarExtra.Section>
       {flight ? (
-        <>
-          {/* <MenuBarExtra.Item
-            icon={Icon.Globe}
-            title="Open Flight in Jumpseat"
-            onAction={() => open(jumpseatFlightUrl(flight))}
-          /> */}
-          <MenuBarExtra.Item
-            icon={Icon.Clipboard}
-            title="Copy Flight Summary"
-            onAction={async () => {
-              await Clipboard.copy(flightSummary(flight));
-              await showHUD("Copied flight summary");
-            }}
-          />
-        </>
+        <MenuBarExtra.Item
+          icon={Icon.Clipboard}
+          title="Copy Flight Summary"
+          onAction={async () => {
+            await Clipboard.copy(flightSummary(flight));
+            await showHUD("Copied flight summary");
+          }}
+        />
       ) : null}
       <MenuBarExtra.Item
         icon={Icon.List}
