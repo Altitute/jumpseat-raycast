@@ -57,27 +57,15 @@ describe("trusted Jumpseat asset URLs", () => {
     ]) {
       expect(trustedJumpseatAssetUrl(value, "airline-logo")).toBeUndefined();
     }
-    expect(
-      trustedJumpseatAssetUrl(
-        "https://cdn.withjumpseat.com/country-flags/IE.png",
-        "country-flag",
-      ),
-    ).toBeUndefined();
   });
 
-  it("accepts versioned airline logos and country flags from the Jumpseat CDN", () => {
+  it("accepts versioned airline logos from the Jumpseat CDN", () => {
     expect(
       trustedJumpseatAssetUrl(
         "https://cdn.withjumpseat.com/airline-logos/EIN/light.svg?v=1234",
         "airline-logo",
       ),
     ).toBe("https://cdn.withjumpseat.com/airline-logos/EIN/light.svg?v=1234");
-    expect(
-      trustedJumpseatAssetUrl(
-        "https://cdn.withjumpseat.com/country-flags/IE.svg",
-        "country-flag",
-      ),
-    ).toBe("https://cdn.withjumpseat.com/country-flags/IE.svg");
   });
 
   it("rejects arbitrary hosts, insecure URLs, credentials, and unexpected paths", () => {
@@ -89,14 +77,14 @@ describe("trusted Jumpseat asset URLs", () => {
     ).toBeUndefined();
     expect(
       trustedJumpseatAssetUrl(
-        "http://cdn.withjumpseat.com/country-flags/IE.svg",
-        "country-flag",
+        "http://cdn.withjumpseat.com/airline-logos/EIN/light.svg",
+        "airline-logo",
       ),
     ).toBeUndefined();
     expect(
       trustedJumpseatAssetUrl(
-        "https://user:secret@cdn.withjumpseat.com/country-flags/IE.svg",
-        "country-flag",
+        "https://user:secret@cdn.withjumpseat.com/airline-logos/EIN/light.svg",
+        "airline-logo",
       ),
     ).toBeUndefined();
     expect(
