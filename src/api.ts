@@ -19,7 +19,6 @@ import {
 
 export type {
   OwnFlightsCursor,
-  OwnFlightsPage,
   FriendSummary,
   FriendUpcomingFlight,
   UpcomingFlight,
@@ -115,7 +114,7 @@ export async function fetchUpcomingFlights(): Promise<UpcomingFlight[]> {
   return flights;
 }
 
-export const PAST_FLIGHTS_PAGE_SIZE = 50;
+const PAST_FLIGHTS_PAGE_SIZE = 50;
 
 // Newest first. A 403 means the stored grant predates the past-flights scope.
 export async function fetchPastFlightsPage(

@@ -6,7 +6,7 @@ export interface JumpseatConfiguration {
 
 const PRODUCTION_API_URL = "https://api.withjumpseat.com";
 const PRODUCTION_WEB_URL = "https://app.withjumpseat.com";
-export const PRODUCTION_AUTH_URL = "https://auth.withjumpseat.com";
+const PRODUCTION_AUTH_URL = "https://auth.withjumpseat.com";
 
 type ConfigurationEnvironment = Record<string, string | undefined>;
 
@@ -94,7 +94,7 @@ export function trustedOAuthOrigins(
   return origins;
 }
 
-export function isTrustedOAuthIssuer(
+function isTrustedOAuthIssuer(
   issuer: string | undefined,
   configuration: JumpseatConfiguration,
   env: ConfigurationEnvironment = process.env,

@@ -1,11 +1,11 @@
-export interface JumpseatOAuthTokenResponse {
+interface JumpseatOAuthTokenResponse {
   access_token: string;
   refresh_token: string;
   expires_in: number;
   scope: string;
 }
 
-export interface JumpseatRefreshResponse {
+interface JumpseatRefreshResponse {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;

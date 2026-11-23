@@ -1,4 +1,4 @@
-export interface AirportSummary {
+interface AirportSummary {
   iata: string | null;
   icao: string | null;
   name: string;

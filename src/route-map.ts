@@ -1,4 +1,4 @@
-export type RouteMapTheme = "light" | "dark";
+type RouteMapTheme = "light" | "dark";
 
 const IATA_CODE_PATTERN = /^[A-Z]{3}$/;
 

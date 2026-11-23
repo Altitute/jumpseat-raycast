@@ -52,7 +52,7 @@ export interface FlightListEntry extends UpcomingFlight {
   userFlightId?: string;
 }
 
-export type FlightsListKind = "personal" | "past" | "friends";
+type FlightsListKind = "personal" | "past" | "friends";
 
 interface FlightsListProps {
   flights: FlightListEntry[];
