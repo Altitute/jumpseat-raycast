@@ -89,10 +89,9 @@ export interface FriendUpcomingFlightsCursor {
   userFlightId?: string;
 }
 
-export interface FriendUpcomingFlightsPage {
+interface FriendUpcomingFlightsPage {
   flights: FriendUpcomingFlight[];
   nextCursor: FriendUpcomingFlightsCursor | null;
-  hasMore: boolean;
 }
 
 const UUID_PATTERN =
@@ -368,5 +367,5 @@ export function parseFriendUpcomingFlightsResponse(
   }
 
   if (body.hasMore !== (nextCursor !== null)) return null;
-  return { flights, nextCursor, hasMore: body.hasMore };
+  return { flights, nextCursor };
 }
