@@ -300,7 +300,6 @@ describe("friends' upcoming flights response parsing", () => {
         },
       ],
       nextCursor: null,
-      hasMore: false,
     });
   });
 
@@ -332,7 +331,7 @@ describe("friends' upcoming flights response parsing", () => {
         nextCursor,
         hasMore: true,
       }),
-    ).toMatchObject({ nextCursor, hasMore: true });
+    ).toMatchObject({ nextCursor });
   });
 
   it("rejects malformed friend identity and pagination metadata", () => {

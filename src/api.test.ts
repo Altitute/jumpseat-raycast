@@ -73,12 +73,10 @@ describe("friends' upcoming flights API", () => {
       .mockReturnValueOnce({
         flights: [firstFlight],
         nextCursor,
-        hasMore: true,
       })
       .mockReturnValueOnce({
         flights: [secondFlight],
         nextCursor: null,
-        hasMore: false,
       });
 
     await expect(fetchFriendUpcomingFlights()).resolves.toEqual([
